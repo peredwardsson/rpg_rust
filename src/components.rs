@@ -2,26 +2,16 @@
 
 use std::collections::VecDeque;
 use specs_derive::Component;
-use shred::{SystemData, World, ResourceId};
 use specs::prelude::*;
 use sdl2::rect::{Rect, Point};
 use rand::distributions::{Standard, Distribution};
 use rand::Rng;
 
-#[derive(SystemData)]
-pub struct PlayableEntities<'a> {
-    pub playable: ReadStorage<'a, Playable>,
-    pub unplayable: ReadStorage<'a, Unplayable>
-}
+#[derive(Debug, Component, Default)]
+pub struct Interactable;
 
-#[derive(SystemData)]
-pub struct PhysicsData<'a> {
-    pub position: WriteStorage<'a, Position>,
-    pub velocity: ReadStorage<'a, Velocity>,
-    pub collision: ReadStorage<'a, CollisionBox>,
-    pub movement_flag: WriteStorage<'a, FlagForMovement>,
-}
-
+#[derive(Debug, Component, Default)]
+pub struct Collectible;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Right,

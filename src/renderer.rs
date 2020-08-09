@@ -23,6 +23,7 @@ pub fn render(
     let (width, height) = canvas.output_size()?;
     let origin = Point::new(width as i32 / 2, height as i32 /2);
     canvas.set_draw_color(Color::RGB(255, 0, 0));
+    
     for (pos, sprite, _) in (&data.0, &data.1, !&data.2).join() {
         let current_frame = sprite.region;
         let screen_coord = origin + pos.0;

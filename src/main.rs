@@ -5,11 +5,13 @@ mod keyboard;
 mod physics;
 mod randomwalker;
 mod renderer;
+mod collectibles;
 
+use rand::{Rng, thread_rng};
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::{
-    image::LoadTexture,
+    image::{LoadTexture},
     keyboard::Keycode,
     rect::{Point, Rect},
 };
@@ -24,6 +26,9 @@ const SPRITE_HEIGHT_PLAYER: i32 = 36;
 
 const SPRITE_WIDTH_REAPER: i32 = 32;
 const SPRITE_HEIGHT_REAPER: i32 = 36;
+
+const SPRITE_HEIGHT_FRUIT: i32 = 16;
+const SPRITE_WIDTH_FRUIT: i32 = 16;
 
 const ANIMATION_N_FRAMES: u8 = 3;
 
@@ -50,6 +55,96 @@ fn generate_animation(
 pub enum MovementCommand {
     Stop(Direction),
     Move(Direction),
+}
+
+pub fn add_player(world: &mut World) -> Result<(), String> {
+    let player_texture_idx = 0;
+    
+    let player_top_left = Rect::new(
+        0,
+        0,
+        SPRITE_WIDTH_PLAYER as u32,
+        SPRITE_HEIGHT_PLAYER as u32,
+    );
+
+    let player_animations = MovementAnimation {
+        current_frame: 0,
+        up_frames: generate_animation(
+            player_texture_idx,
+            player_top_left,
+            Direction::Up,
+            SPRITE_WIDTH_PLAYER,
+        ),
+        down_frames: generate_animation(
+            player_texture_idx,
+            player_top_left,
+            Direction::Down,
+            SPRITE_WIDTH_PLAYER,
+        ),
+        left_frames: generate_animation(
+            player_texture_idx,
+            player_top_left,
+            Direction::Left,
+            SPRITE_WIDTH_PLAYER,
+        ),
+        right_frames: generate_animation(
+            player_texture_idx,
+            player_top_left,
+            Direction::Right,
+            SPRITE_WIDTH_PLAYER,
+        ),
+    };
+
+    world
+        .create_entity()
+        .with(KeyboardControlled)
+        .with(Position(Point::new(0, 0)))
+        .with(Velocity {
+            speed: 0 as i32,
+            direction: VecDeque::new(),
+        })
+        .with(CollisionBox {
+            width: SPRITE_WIDTH_PLAYER as u32,
+            height: SPRITE_HEIGHT_PLAYER as u32,
+        })
+        .with(Playable)
+        .with(FlagForMovement{moving: false, new_pos: Position(Point::new( 0,  0))})
+        .with(player_animations.right_frames[0])
+        .with(player_animations)
+        .build();
+
+    Ok(())
+}
+
+pub fn spawn_fruit(world: &mut World, x: i32, y: i32) -> Result<(), String> {
+    let spritesheet = 2;
+
+    let mut r = thread_rng();
+    let row = r.gen_range(0, 7);
+    let col = r.gen_range(0, 7);
+
+    let region = Rect::new(
+        row * SPRITE_HEIGHT_FRUIT,
+        col * SPRITE_WIDTH_FRUIT,
+        SPRITE_WIDTH_FRUIT as u32,
+        SPRITE_HEIGHT_FRUIT as u32,
+    );
+
+    let fruit_sprite = Sprite{spritesheet, region};
+
+    world
+        .create_entity()
+        .with(Position(Point::new(x, y)))
+        .with(CollisionBox {
+            width: SPRITE_WIDTH_FRUIT as u32,
+            height: SPRITE_HEIGHT_FRUIT as u32,
+        })
+        .with(Unplayable)
+        .with(Collectible)
+        .with(fruit_sprite)
+        .build();
+
+    Ok(())
 }
 
 fn direction_to_animation_row(dir: Direction) -> i32 {
@@ -82,6 +177,7 @@ pub fn main() -> Result<(), String> {
         .with(physics::Physics, "Physics", &["Keyboard"])
         .with(animator::Animator, "Animator", &["Keyboard"])
         .with(randomwalker::RandomWalker, "RandomWalker", &["Physics"])
+        .with(collectibles::Collectibles, "Collectibles",&["Physics"])
         .build();
 
     let mut world_clock: Option<Instant> = None;
@@ -98,41 +194,7 @@ pub fn main() -> Result<(), String> {
         texture_creator.load_texture("assets/reaper.png")?,
         texture_creator.load_texture("assets/food.png")?,
     ];
-
-    let player_texture_idx = 0;
-    let player_top_left = Rect::new(
-        0,
-        0,
-        SPRITE_WIDTH_PLAYER as u32,
-        SPRITE_HEIGHT_PLAYER as u32,
-    );
-    let player_animations = MovementAnimation {
-        current_frame: 0,
-        up_frames: generate_animation(
-            player_texture_idx,
-            player_top_left,
-            Direction::Up,
-            SPRITE_WIDTH_PLAYER,
-        ),
-        down_frames: generate_animation(
-            player_texture_idx,
-            player_top_left,
-            Direction::Down,
-            SPRITE_WIDTH_PLAYER,
-        ),
-        left_frames: generate_animation(
-            player_texture_idx,
-            player_top_left,
-            Direction::Left,
-            SPRITE_WIDTH_PLAYER,
-        ),
-        right_frames: generate_animation(
-            player_texture_idx,
-            player_top_left,
-            Direction::Right,
-            SPRITE_WIDTH_PLAYER,
-        ),
-    };
+    
     let reaper_texture_idx = 1;
     let reaper_top_left = Rect::new(
         0,
@@ -167,30 +229,11 @@ pub fn main() -> Result<(), String> {
             SPRITE_WIDTH_REAPER,
         ),
     };
-    let starting_velocity: VecDeque<Direction> = VecDeque::new();
     let mut starting_velocity_npc: VecDeque<Direction> = VecDeque::new();
 
-    //starting_velocity.push_back(Direction::Down);
     starting_velocity_npc.push_back(Direction::Up);
 
-    // Create the player
-    world
-        .create_entity()
-        .with(KeyboardControlled)
-        .with(Position(Point::new(0, 0)))
-        .with(Velocity {
-            speed: 0 as i32,
-            direction: starting_velocity,
-        })
-        .with(CollisionBox {
-            width: SPRITE_WIDTH_PLAYER as u32,
-            height: SPRITE_HEIGHT_PLAYER as u32,
-        })
-        .with(Playable)
-        .with(FlagForMovement{moving: false, new_pos: Position(Point::new( 0,  0))})
-        .with(player_animations.right_frames[0])
-        .with(player_animations)
-        .build();
+    add_player(&mut world)?;
 
     // Create another thing
     world
@@ -217,7 +260,7 @@ pub fn main() -> Result<(), String> {
 
     let mut i: i64 = 4;
     let mut going_up: i8 = 3;
-
+    let mut k = 0;
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
         if (i > 100) | (i < 3) {
@@ -295,7 +338,23 @@ pub fn main() -> Result<(), String> {
                     movement_command.push_back(Some(MovementCommand::Stop(Direction::Right)));
                     println!("KeyUp: Right");
                 }
-                
+
+                Event::MouseButtonDown{x, y, ..} => {
+                    println!("Mouse down! ({}, {})", x, y);
+                    let (w, h) = canvas.output_size()?;
+                    let w = w as i32;
+                    let h = h as i32;
+                    spawn_fruit(&mut world, x-w/2, y-h/2)?;
+                },
+
+                Event::KeyDown{
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => {
+                    //println!("{:?}", world.entities().);
+                    k += 1;
+                }
+
                 _ => {}
             }
         }

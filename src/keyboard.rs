@@ -19,8 +19,8 @@ impl<'a> System<'a> for Keyboard {
 
         while !&data.0.is_empty() {
             let movement_command = match (*data.0).pop_front() {
-                Some(mmcmd) => mmcmd.unwrap(),
-                None => return,    
+                Some(Some(mmcmd)) => mmcmd,
+                _ => return,    
             };
             for (_, vel) in (&data.1, &mut data.2).join() {
             match movement_command {
@@ -35,7 +35,6 @@ impl<'a> System<'a> for Keyboard {
                         println!("Attempted to remove {:?} from vel; failed.", dir);
                     }
                 }
-                _ => ()
             }
         }
         }
