@@ -25,7 +25,7 @@ impl<'a> System<'a> for Physics {
         let mut new_pos = Position::default();
         for (pos, vel, _, flag) in (&data.0, &data.1, &data.2, &mut data.3).join() {
             if !vel.direction.is_empty() { 
-                for (obj_pos, obj_col) in (&data.0, &data.2).join() {
+                for (obj_pos, obj_col, _) in (&data.0, &data.2, &data.5).join() {
                     let obj_rect = Rect::from_center(obj_pos.0, obj_col.width, obj_col.height); 
                     let dir = &vel.direction.front().unwrap(); 
                     new_pos.0 = match dir {
@@ -35,8 +35,13 @@ impl<'a> System<'a> for Physics {
                         Direction::Up => (pos.0.offset(0,-vel.speed)),
                     };
                     match obj_rect.intersect_line(pos.0, new_pos.0) {
-                        Some(_) => {},
+                        Some(_) => {
+                            //println!("Movement not ok! 💔");
+                            flag.moving = false;
+                            break;
+                        },
                         None => {
+                            //println!("Movement ok! ❤");
                             flag.moving = true;
                             flag.new_pos = new_pos;
                         },

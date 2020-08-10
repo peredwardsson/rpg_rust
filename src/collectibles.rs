@@ -1,4 +1,4 @@
-use specs::{WriteStorage, System, ReadStorage, join::Join, Entities};
+use specs::{System, ReadStorage, join::Join, Entities};
 use sdl2::rect::{Rect};
 use crate::components::*;
 
@@ -23,10 +23,10 @@ impl<'a> System<'a> for Collectibles {
             .for_each(
                 |(entity, obj_pos, obj_col, _)| {
                     let obj_rect = Rect::from_center(obj_pos.0, obj_col.width, obj_col.height);
-                    match obj_rect.intersection(player_rect) {
-                        Some(_) => data.0.delete(entity).ok(),
-                        _ => {None},
-                    };
+                    if obj_rect.intersection(player_rect).is_some(){
+                        data.0.delete(entity).ok();
+                        println!("Collected fruit!");
+                    }
                 }
             );
         }

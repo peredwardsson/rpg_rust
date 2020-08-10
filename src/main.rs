@@ -30,7 +30,12 @@ const SPRITE_HEIGHT_REAPER: i32 = 36;
 const SPRITE_HEIGHT_FRUIT: i32 = 16;
 const SPRITE_WIDTH_FRUIT: i32 = 16;
 
+const SPRITE_HEIGHT_CHEST: i32 = 24;
+const SPRITE_WIDTH_CHEST: i32 = 24;
+
 const ANIMATION_N_FRAMES: u8 = 3;
+const ANIMATION_N_FRAMES_CHEST: u8 = 3;
+
 
 fn generate_animation(
     spritesheet_idx: usize,
@@ -52,9 +57,33 @@ fn generate_animation(
     frames
 }
 
+fn generate_animation_chest(
+    spritesheet_idx: usize
+) -> Vec<Sprite> {
+    let mut frames: Vec<Sprite> = Vec::new();
+
+    for i in 0..ANIMATION_N_FRAMES_CHEST as i32 {
+        frames.push(Sprite {
+            spritesheet: spritesheet_idx,
+            region: Rect::new(
+                0,
+                SPRITE_HEIGHT_CHEST * i, 
+                SPRITE_WIDTH_CHEST as u32, 
+                SPRITE_HEIGHT_CHEST as u32),
+        })
+    }
+
+    frames
+}
+
 pub enum MovementCommand {
     Stop(Direction),
     Move(Direction),
+}
+
+pub enum PlayerCommands {
+    Interact,
+    Menu,
 }
 
 pub fn add_player(world: &mut World) -> Result<(), String> {
@@ -111,6 +140,7 @@ pub fn add_player(world: &mut World) -> Result<(), String> {
         .with(FlagForMovement{moving: false, new_pos: Position(Point::new( 0,  0))})
         .with(player_animations.right_frames[0])
         .with(player_animations)
+        .with(Facing(Direction::Right))
         .build();
 
     Ok(())
@@ -157,6 +187,30 @@ fn direction_to_animation_row(dir: Direction) -> i32 {
     }
 }
 
+pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
+    let spritesheet = 3;
+
+    let chest_frames = generate_animation_chest(spritesheet);
+    let chest_animation = EntityAnimation{
+        current_frame: 0,
+        frames: chest_frames,
+    };
+
+    world
+        .create_entity()
+        .with(Position(Point::new(x, y)))
+        .with(CollisionBox {
+            width: SPRITE_WIDTH_CHEST as u32,
+            height: SPRITE_HEIGHT_CHEST as u32,
+        })
+        .with(Unplayable)
+        .with(Interactable)
+        .with(chest_animation.clone())
+        .with(chest_animation.frames[0])
+        .build();
+    Ok(())
+}
+
 pub fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video().expect("Could not init video system");
@@ -185,14 +239,22 @@ pub fn main() -> Result<(), String> {
     let mut world = World::new();
     dispatcher.setup(&mut world);
     renderer::SystemData::setup(&mut world);
+    
     let movement_command: VecDeque<Option<MovementCommand>> = VecDeque::new();
+    let player_command: Option<PlayerCommands> = None;
+
+    let draw_bounding_box = true;
+
     world.insert(movement_command);
     world.insert(world_clock);
+    world.insert(player_command);
+    world.register::<EntityAnimation>();
 
     let textures = [
         texture_creator.load_texture("assets/bardo.png")?,
         texture_creator.load_texture("assets/reaper.png")?,
         texture_creator.load_texture("assets/food.png")?,
+        texture_creator.load_texture("assets/chest.png")?,
     ];
     
     let reaper_texture_idx = 1;
@@ -260,7 +322,6 @@ pub fn main() -> Result<(), String> {
 
     let mut i: i64 = 4;
     let mut going_up: i8 = 3;
-    let mut k = 0;
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
         if (i > 100) | (i < 3) {
@@ -270,6 +331,7 @@ pub fn main() -> Result<(), String> {
         // println!("i = {}", i);
         color.b = 100 + i as u8;
         let mut movement_command: VecDeque<Option<MovementCommand>> = VecDeque::new();
+        let mut player_command: Option<PlayerCommands> = None;
 
         for event in event_pump.poll_iter() {
             match event {
@@ -311,7 +373,7 @@ pub fn main() -> Result<(), String> {
                     repeat: false,
                     ..
                 } => {
-                    println!("KeyUp: Up");
+                    //println!("KeyUp: Up");
                     movement_command.push_back(Some(MovementCommand::Stop(Direction::Up)));
                 }
                 Event::KeyUp {
@@ -319,7 +381,7 @@ pub fn main() -> Result<(), String> {
                     repeat: false,
                     ..
                 } => {
-                    println!("KeyUp: Down");
+                    //println!("KeyUp: Down");
                     movement_command.push_back(Some(MovementCommand::Stop(Direction::Down)));
                 }
                 Event::KeyUp {
@@ -327,7 +389,7 @@ pub fn main() -> Result<(), String> {
                     repeat: false,
                     ..
                 } => {
-                    println!("KeyUp: Left");
+                    //println!("KeyUp: Left");
                     movement_command.push_back(Some(MovementCommand::Stop(Direction::Left)));
                 }
                 Event::KeyUp {
@@ -336,7 +398,7 @@ pub fn main() -> Result<(), String> {
                     ..
                 } => {
                     movement_command.push_back(Some(MovementCommand::Stop(Direction::Right)));
-                    println!("KeyUp: Right");
+                    //println!("KeyUp: Right");
                 }
 
                 Event::MouseButtonDown{x, y, ..} => {
@@ -344,15 +406,21 @@ pub fn main() -> Result<(), String> {
                     let (w, h) = canvas.output_size()?;
                     let w = w as i32;
                     let h = h as i32;
-                    spawn_fruit(&mut world, x-w/2, y-h/2)?;
+                    spawn_chest(&mut world, x-w/2, y-h/2)?; 
                 },
 
                 Event::KeyDown{
                     keycode: Some(Keycode::Z),
                     ..
                 } => {
+                    player_command = Some(PlayerCommands::Interact);
+                }
+                Event::KeyUp{
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => {
                     //println!("{:?}", world.entities().);
-                    k += 1;
+                    player_command = None;
                 }
 
                 _ => {}
@@ -361,13 +429,14 @@ pub fn main() -> Result<(), String> {
 
         *world.write_resource() = movement_command;
         *world.write_resource() = world_clock;
+        *world.write_resource() = player_command;
 
         // Update
         dispatcher.dispatch(&world);
         world.maintain();
 
         // Render
-        renderer::render(&mut canvas, color, &textures, world.system_data())?;
+        renderer::render(&mut canvas, color, &textures, world.system_data(), draw_bounding_box)?;
 
         // Time Management
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 20));

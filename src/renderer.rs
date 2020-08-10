@@ -15,6 +15,7 @@ pub fn render(
     background: Color,
     textures: &[Texture],
     data: SystemData,
+    draw_bounding_boxes: bool,
 ) -> Result<(), String> {
 
     canvas.set_draw_color(background);
@@ -32,15 +33,15 @@ pub fn render(
         canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
 
     }
+    if draw_bounding_boxes {
+        for (pos, sprite, col) in (&data.0, &data.1, &data.2).join() {
+            let current_frame = sprite.region;
+            let screen_coord = origin + pos.0;
 
-    for (pos, sprite, col) in (&data.0, &data.1, &data.2).join() {
-        let current_frame = sprite.region;
-        let screen_coord = origin + pos.0;
-
-        let screen_rect = Rect::from_center(screen_coord, current_frame.width(), current_frame.height());
-        canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
-        canvas.draw_rect(Rect::from_center(screen_coord, col.width, col.height))?;
-
+            let screen_rect = Rect::from_center(screen_coord, current_frame.width(), current_frame.height());
+            canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
+            canvas.draw_rect(Rect::from_center(screen_coord, col.width, col.height))?;
+        }
     }
 
     canvas.present();

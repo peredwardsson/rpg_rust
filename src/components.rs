@@ -8,10 +8,14 @@ use rand::distributions::{Standard, Distribution};
 use rand::Rng;
 
 #[derive(Debug, Component, Default)]
+pub struct Facing(pub Direction);
+
+#[derive(Debug, Component, Default)]
 pub struct Interactable;
 
 #[derive(Debug, Component, Default)]
 pub struct Collectible;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Right,
@@ -29,6 +33,12 @@ impl Distribution<Direction> for Standard {
             _ => Direction::Up,
         }
     }  
+}
+
+impl Default for Direction {
+    fn default() -> Self {
+        Direction::Down
+    }
 }
 
 #[derive(Component, Clone, Default, Debug)]
@@ -93,4 +103,20 @@ pub struct MovementAnimation {
     pub right_frames: Vec<Sprite>,
     pub down_frames: Vec<Sprite>,
     pub left_frames: Vec<Sprite>,
+}
+
+#[derive(Component, Debug, Clone)]
+#[storage(VecStorage)]
+pub struct EntityAnimation {
+    pub current_frame: usize,
+    pub frames: Vec<Sprite>,
+}
+
+impl Default for EntityAnimation {
+    fn default() -> Self {
+        EntityAnimation{
+            current_frame: 0,
+            frames: Vec::new(),
+        }
+    }
 }
