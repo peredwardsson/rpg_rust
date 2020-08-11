@@ -7,9 +7,9 @@ use sdl2::rect::{Rect, Point};
 use rand::distributions::{Standard, Distribution};
 use rand::Rng;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Clone)]
 pub struct InteractionZone {
-    rect: Rect,
+    pub rect: Rect,
 }
 
 impl Default for InteractionZone {

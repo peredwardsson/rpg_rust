@@ -19,13 +19,25 @@ impl<'a> System<'a> for Physics {
         WriteStorage<'a, FlagForMovement>,
         ReadStorage<'a, Playable>,
         ReadStorage<'a, Unplayable>,
+        WriteStorage<'a, InteractionZone>
     );
 
-    fn run(&mut self, mut data: Self::SystemData) {
+    fn run(
+        &mut self,
+        (
+            mut position, 
+            velocity, 
+            collisionbox, 
+            mut movementflags, 
+            playableflag, 
+            unplayableflag,
+            interactionzone,
+        ): Self::SystemData) {
+        let a = interactionzone;
         let mut new_pos = Position::default();
-        for (pos, vel, _, flag) in (&data.0, &data.1, &data.2, &mut data.3).join() {
+        for (pos, vel, _, flag) in (&position, &velocity, &collisionbox, &mut movementflags).join() {
             if !vel.direction.is_empty() { 
-                for (obj_pos, obj_col, _) in (&data.0, &data.2, &data.5).join() {
+                for (obj_pos, obj_col, _) in (&position, &collisionbox, &unplayableflag).join() {
                     let obj_rect = Rect::from_center(obj_pos.0, obj_col.width, obj_col.height); 
                     let dir = &vel.direction.front().unwrap(); 
                     new_pos.0 = match dir {
@@ -50,7 +62,7 @@ impl<'a> System<'a> for Physics {
             }
         }
 
-        for (pos, flag) in (&mut data.0, &data.3).join() {
+        for (pos, flag) in (&mut position, &movementflags).join() {
             if flag.moving {
                 pos.0 = flag.new_pos.0;
             }

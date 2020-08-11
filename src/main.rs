@@ -6,6 +6,7 @@ mod physics;
 mod randomwalker;
 mod renderer;
 mod collectibles;
+mod update_interaction;
 
 use rand::{Rng, thread_rng};
 use sdl2::event::Event;
@@ -234,6 +235,7 @@ pub fn main() -> Result<(), String> {
         .with(animator::Animator, "Animator", &["Keyboard"])
         .with(randomwalker::RandomWalker, "RandomWalker", &["Physics"])
         .with(collectibles::Collectibles, "Collectibles",&["Physics"])
+        .with(update_interaction::IZUpdater, "Interaction Zone", &["Physics"])
         .build();
 
     let mut world_clock: Option<Instant> = None;
@@ -246,6 +248,7 @@ pub fn main() -> Result<(), String> {
     let player_command: Option<PlayerCommands> = None;
 
     let draw_bounding_box = true;
+    let draw_interaction_zone = true;
 
     world.insert(movement_command);
     world.insert(world_clock);
@@ -336,6 +339,7 @@ pub fn main() -> Result<(), String> {
         let mut player_command: Option<PlayerCommands> = None;
 
         for event in event_pump.poll_iter() {
+            // TODO: Add support for setting draw_bounding and draw_interaction.
             match event {
                 Event::Quit { .. } | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
@@ -438,7 +442,12 @@ pub fn main() -> Result<(), String> {
         world.maintain();
 
         // Render
-        renderer::render(&mut canvas, color, &textures, world.system_data(), draw_bounding_box)?;
+        renderer::render(&mut canvas, 
+            color, 
+            &textures, 
+            world.system_data(), 
+            draw_bounding_box, 
+            draw_interaction_zone)?;
 
         // Time Management
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 20));
