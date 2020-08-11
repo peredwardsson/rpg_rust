@@ -141,6 +141,7 @@ pub fn add_player(world: &mut World) -> Result<(), String> {
         .with(player_animations.right_frames[0])
         .with(player_animations)
         .with(Facing(Direction::Right))
+        .with(InteractionZone::default())
         .build();
 
     Ok(())
@@ -217,6 +218,7 @@ pub fn main() -> Result<(), String> {
 
     let window = video_subsystem
         .window("mah game!!", 800, 600)
+        .position(0, 0)
         .build()
         .expect("Internal error.");
 

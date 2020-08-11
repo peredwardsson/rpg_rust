@@ -13,16 +13,16 @@ impl<'a> System<'a> for RandomWalker {
         WriteStorage<'a, Velocity>,
     );
 
-    fn run(&mut self, mut data: Self::SystemData) {
+    fn run(&mut self, (timer, is_walker, mut velocity): Self::SystemData) {
 
-        let time = match &*data.0 {
+        let time = match &*timer {
             Some(timer) => timer,
             None => { println!("No timer found.");
                 return},
         };
         let mut r = thread_rng();
 
-        for (_, vel) in (&data.1, &mut data.2).join() {
+        for (_, vel) in (&is_walker, &mut velocity).join() {
             if time.elapsed().as_millis() % 50 == 0 {
                 let sample: f64 = r.gen();
                 if sample < 0.9 {

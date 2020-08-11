@@ -5,7 +5,7 @@ use sdl2::rect::{Rect, Point};
 
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
 
-const INTERACTION_WIDTH: u32 = 30;
+const INTERACTION_WIDTH: u32 = 50;
 const INTERACTION_HEIGHT: u32 = 80;
 
 pub struct Keyboard;
@@ -22,12 +22,13 @@ impl<'a> System<'a> for Keyboard {
         ReadStorage<'a, Interactable>,
         ReadStorage<'a, Position>,
         WriteStorage<'a, Facing>,
-        ReadStorage<'a, CollisionBox>
+        ReadStorage<'a, CollisionBox>,
+        ReadStorage<'a, InteractionZone>,
     );
 
     fn run(&mut self, mut data: Self::SystemData) {
         
-        // This loop takes care of movement
+        // This clause takes care of movement
         while !&data.0.is_empty() {
             let movement_command = match (*data.0).pop_front() {
                 Some(Some(mmcmd)) => mmcmd,
@@ -49,10 +50,12 @@ impl<'a> System<'a> for Keyboard {
             }
         }
         
+        // This clause takes care of dealing with input commands.
         if let Some(m) = &*data.3 {
             match m {
                 PlayerCommands::Interact => {
                     println!("Interacting!!");
+
                     let mut interaction_zone;
                     for (_, player_pos, facing) in (&data.1, &data.5, &data.6).join() {
                         if facing.0 == Direction::Left || facing.0 == Direction::Right {

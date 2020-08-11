@@ -7,6 +7,20 @@ use sdl2::rect::{Rect, Point};
 use rand::distributions::{Standard, Distribution};
 use rand::Rng;
 
+#[derive(Debug, Component)]
+pub struct InteractionZone {
+    rect: Rect,
+}
+
+impl Default for InteractionZone {
+    fn default() -> Self {
+        InteractionZone { 
+            rect: Rect::new(0, 0, 50, 80),
+        }
+    }
+    
+}
+
 #[derive(Debug, Component, Default)]
 pub struct Facing(pub Direction);
 
