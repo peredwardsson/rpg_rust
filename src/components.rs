@@ -10,16 +10,28 @@ use rand::Rng;
 #[derive(Debug, Component, Clone)]
 pub struct InteractionZone {
     pub rect: Rect,
+    pub flipped: bool,
 }
 
 impl Default for InteractionZone {
     fn default() -> Self {
         InteractionZone { 
             rect: Rect::new(0, 0, 50, 80),
+            flipped : false,
         }
     }
-    
 }
+
+impl InteractionZone {
+    pub fn flip (&mut self) {
+        let w = self.rect.width();
+        let h = self.rect.height();
+        self.rect.set_height(w);
+        self.rect.set_width(h);
+        self.flipped = !self.flipped;
+    }
+}
+
 
 #[derive(Debug, Component, Default)]
 pub struct Facing(pub Direction);
@@ -75,6 +87,15 @@ pub struct Unplayable;
 pub struct CollisionBox {
     pub width: u32,
     pub height: u32,
+}
+
+impl CollisionBox {
+    pub fn flip (&mut self) {
+        let w = self.width;
+        let h = self.height;
+        self.height = w;
+        self.width = h;
+    }
 }
 
 #[derive(Component, Debug, Default)]
