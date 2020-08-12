@@ -35,7 +35,7 @@ const SPRITE_HEIGHT_CHEST: i32 = 24;
 const SPRITE_WIDTH_CHEST: i32 = 24;
 
 const ANIMATION_N_FRAMES: u8 = 3;
-const ANIMATION_N_FRAMES_CHEST: u8 = 3;
+const ANIMATION_N_FRAMES_CHEST: u8 = 4;
 
 
 fn generate_animation(
@@ -67,8 +67,8 @@ fn generate_animation_chest(
         frames.push(Sprite {
             spritesheet: spritesheet_idx,
             region: Rect::new(
+                SPRITE_WIDTH_CHEST * i, 
                 0,
-                SPRITE_HEIGHT_CHEST * i, 
                 SPRITE_WIDTH_CHEST as u32, 
                 SPRITE_HEIGHT_CHEST as u32),
         })
@@ -236,9 +236,9 @@ pub fn main() -> Result<(), String> {
     let mut dispatcher = DispatcherBuilder::new()
         .with(keyboard::Keyboard, "Keyboard", &[])
         .with(physics::Physics, "Physics", &["Keyboard"])
-        .with(animator::Animator, "Animator", &["Keyboard"])
+        .with(animator::Animator, "Animator", &["Keyboard", "Physics"])
         .with(randomwalker::RandomWalker, "RandomWalker", &["Physics"])
-        .with(collectibles::Collectibles, "Collectibles",&["Physics"])
+        .with(collectibles::Collectibles, "Collectibles",&["Physics", "Animator"])
         .with(update_interaction::IZUpdater, "Interaction Zone", &["Physics"])
         .build();
 

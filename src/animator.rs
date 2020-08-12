@@ -4,23 +4,24 @@ use crate::components::*;
 pub struct Animator;
 
 impl<'a> System<'a> for Animator {
-    // These are the resources required for execution.
-    // You can also define a struct and `#[derive(SystemData)]`,
-    // see the `full` example.
     type SystemData = (
         WriteStorage<'a, MovementAnimation>,
         WriteStorage<'a, Sprite>, 
-        ReadStorage<'a, Velocity>
+        ReadStorage<'a, Velocity>,
+        WriteStorage<'a, EntityAnimation>,
+        ReadStorage<'a, Interactable>,
     );
 
-    fn run(&mut self, mut data: Self::SystemData) {
+    fn run(&mut self, (
+        mut moveanimation,
+        mut sprite,
+        velocity,
+        mut entanimation,
+        interactable
+    ): Self::SystemData) {
         use crate::components::Direction::*;
-        // This joins the component storages for Position
-        // and Velocity together; it's also possible to do this
-        // in parallel using rayon's `ParallelIterator`s.
-        // See `ParJoin` for more.
         
-        for (anim, sprite, vel) in (&mut data.0, &mut data.1, &data.2).join() {    
+        for (anim, sprite, vel) in (&mut moveanimation, &mut sprite, &velocity).join() {    
             if vel.direction.is_empty() {
                 continue;
             }
@@ -34,6 +35,19 @@ impl<'a> System<'a> for Animator {
 
             anim.current_frame = (anim.current_frame + 1) % frames.len();
             *sprite = frames[anim.current_frame];
+        }
+
+        for (anim, sprite, obj) in (&mut entanimation, &mut sprite, &interactable).join() {
+            if obj.interactions > 0 {
+            let frames = &anim.frames;
+            *sprite = frames[anim.current_frame];
+            if anim.current_frame < frames.len()-1 {
+                anim.current_frame += 1;
+            } else {
+                continue;
+            }
+            }
+            
         }
     }
 }
