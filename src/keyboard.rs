@@ -1,12 +1,9 @@
-use specs::{WriteStorage, System, ReadStorage, WriteExpect, ReadExpect, join::Join};
+use specs::{WriteStorage, System, ReadStorage, WriteExpect, ReadExpect, join::Join, Entities};
 use crate::components::*;
 use std::collections::VecDeque;
-use sdl2::rect::{Rect, Point};
+//use sdl2::rect::{Rect, Point};
 
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
-
-const INTERACTION_WIDTH: u32 = 50;
-const INTERACTION_HEIGHT: u32 = 80;
 
 pub struct Keyboard;
 
@@ -22,8 +19,9 @@ impl<'a> System<'a> for Keyboard {
         WriteStorage<'a, Velocity>,
         WriteStorage<'a, Facing>,
         ReadStorage<'a, CollisionBox>,
-        ReadStorage<'a, Interactable>,
+        WriteStorage<'a, Interactable>,
         ReadStorage<'a, InteractionZone>,
+        Entities<'a>,
     );
 
     fn run(&mut self, 
@@ -35,8 +33,9 @@ impl<'a> System<'a> for Keyboard {
         mut velocity,
         mut facing,
         collisionbox,
-        interactable,
+        mut interactable,
         interactionzone,
+        entities,
     ): Self::SystemData) {
         
         // This clause takes care of movement
@@ -49,8 +48,7 @@ impl<'a> System<'a> for Keyboard {
                 match movement_command { 
                     MovementCommand::Move(direction) => {
                         vel.speed = PLAYER_MOVEMENT_SPEED;
-                        vel.direction.push_back(direction);
-                        facing.0 = direction;
+                        vel.direction.push_back(direction);   
                     }
                     MovementCommand::Stop(dir) => {
                         if vel.direction.contains(&dir) {
@@ -58,19 +56,30 @@ impl<'a> System<'a> for Keyboard {
                         } 
                     }
                 }
+                if !vel.direction.is_empty(){
+                    facing.direction = *vel.direction.front().unwrap();
+                }
             }
         }
         
         // This clause takes care of dealing with input commands.
         match &*playercommands {
             Some(PlayerCommands::Interact) => {
-                println!("Interacting!!");
-                let mut interaction_zone: InteractionZone;
-                for (pos, interzone) in (&position, &interactionzone).join() {
-                    interaction_zone = (*interzone).clone();
-                    for (obj_pos, _) in (&position, &interactable).join() {
-                        if interaction_zone.rect.contains_point(obj_pos.0) {
-                            println!("Found one!!");
+
+                for interzone in (&interactionzone).join() {
+                    for (obj_pos, object) in (&position, &mut interactable).join() {
+                        if interzone.rect.contains_point(obj_pos.0) & ( // Is there an object in the interaction zone?
+                            ( // Can we interact more with it?
+                                (object.interactions < object.max_interactions) &
+                                (object.max_interactions > 0)
+                            ) | ( // Can we interact an infinite amount with it?
+                                object.max_interactions == 0
+                            )
+                        ) {
+                            (*object).interact();
+                            // Run the interaction!
+                            println!("Interacted with a thing!");
+                            break;
                         }
                     }
                 }
@@ -82,45 +91,5 @@ impl<'a> System<'a> for Keyboard {
             None => {}
         };
 
-        // if let m = *(playercommands.iter()).collect() {
-        //     match m {
-        //         PlayerCommands::Interact => {
-        //             println!("Interacting!!");
-
-        //             let mut interaction_zone;
-        //             for (_, player_pos, facing) in (&is_keyboardcontrolled, &position, &facing).join() {
-        //                 if facing.0 == Direction::Left || facing.0 == Direction::Right {
-        //                     interaction_zone = Rect::new(
-        //                         player_pos.0.x, 
-        //                         player_pos.0.y, 
-        //                         INTERACTION_HEIGHT, 
-        //                         INTERACTION_WIDTH,
-        //                     );
-        //                 } else { 
-        //                     interaction_zone = Rect::new(
-        //                         player_pos.0.x, 
-        //                         player_pos.0.y, 
-        //                         INTERACTION_WIDTH, 
-        //                         INTERACTION_HEIGHT,
-        //                     );
-        //                 }
-
-        //                 for (obj_pos, obj_col, _) in (&position, &collisionbox, &interactable).join() {
-        //                     let x = obj_pos.0.x + obj_col.width as i32;
-        //                     let y = obj_pos.0.y + obj_col.height as i32;
-        //                     if interaction_zone.contains_point(Point::new(x, y)) {
-        //                         println!("Thing in interaction zone!!")
-        //                     }
-        //                 }
-                        
-        //             }
-                    
-        //         },
-        //         PlayerCommands::Menu => {
-        //             println!("Open the darn menu!!")
-        //         },
-        //     }
-        // }
-        
     }
 }

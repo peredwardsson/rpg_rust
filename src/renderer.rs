@@ -38,13 +38,14 @@ pub fn render(
         canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
 
     }
-    if draw_bounding_boxes {
-        for (pos, sprite, col) in (&position, &sprite, &collision).join() {
-            let current_frame = sprite.region;
-            let screen_coord = origin + pos.0;
 
-            let screen_rect = Rect::from_center(screen_coord, current_frame.width(), current_frame.height());
-            canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
+    for (pos, sprite, col) in (&position, &sprite, &collision).join() {
+        let current_frame = sprite.region;
+        let screen_coord = origin + pos.0;
+
+        let screen_rect = Rect::from_center(screen_coord, current_frame.width(), current_frame.height());
+        canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
+        if draw_bounding_boxes {
             canvas.draw_rect(Rect::from_center(screen_coord, col.width, col.height))?;
         }
     }

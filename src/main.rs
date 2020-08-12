@@ -139,9 +139,9 @@ pub fn add_player(world: &mut World) -> Result<(), String> {
         })
         .with(Playable)
         .with(FlagForMovement{moving: false, new_pos: Position(Point::new( 0,  0))})
-        .with(player_animations.right_frames[0])
+        .with(player_animations.down_frames[0])
         .with(player_animations)
-        .with(Facing(Direction::Right))
+        .with(Facing::default())
         .with(InteractionZone::default())
         .build();
 
@@ -197,7 +197,11 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
         current_frame: 0,
         frames: chest_frames,
     };
-
+    let i = Interactable {
+        interactions: 0,
+        max_interactions: 0,
+        interaction_type: InteractableType::Chest
+    };
     world
         .create_entity()
         .with(Position(Point::new(x, y)))
@@ -206,7 +210,7 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
             height: SPRITE_HEIGHT_CHEST as u32,
         })
         .with(Unplayable)
-        .with(Interactable)
+        .with(i)
         .with(chest_animation.clone())
         .with(chest_animation.frames[0])
         .build();
@@ -247,8 +251,8 @@ pub fn main() -> Result<(), String> {
     let movement_command: VecDeque<Option<MovementCommand>> = VecDeque::new();
     let player_command: Option<PlayerCommands> = None;
 
-    let draw_bounding_box = true;
-    let draw_interaction_zone = true;
+    let mut draw_bounding_box = true;
+    let mut draw_interaction_zone = true;
 
     world.insert(movement_command);
     world.insert(world_clock);
@@ -405,6 +409,20 @@ pub fn main() -> Result<(), String> {
                 } => {
                     movement_command.push_back(Some(MovementCommand::Stop(Direction::Right)));
                     //println!("KeyUp: Right");
+                }
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::F1),
+                    ..
+                } => {
+                    draw_bounding_box = !draw_bounding_box;
+                }
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::F2),
+                    ..
+                } => {
+                    draw_interaction_zone = !draw_interaction_zone;
                 }
 
                 Event::MouseButtonDown{x, y, ..} => {

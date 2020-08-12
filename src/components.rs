@@ -1,6 +1,7 @@
+mod interactable_objects;
+use interactable_objects::*;
 
-
-use std::collections::VecDeque;
+use std::{fmt::Debug, collections::VecDeque};
 use specs_derive::Component;
 use specs::prelude::*;
 use sdl2::rect::{Rect, Point};
@@ -34,10 +35,57 @@ impl InteractionZone {
 
 
 #[derive(Debug, Component, Default)]
-pub struct Facing(pub Direction);
+pub struct Facing {
+    pub direction: Direction,
+}
 
-#[derive(Debug, Component, Default)]
-pub struct Interactable;
+pub enum InteractableType {
+    Chest,
+    Pickup,
+    DestroyedOnUse,
+    Character,
+    Lever,
+}
+
+impl Debug for InteractableType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            InteractableType::Chest => {"Chest"},
+            InteractableType::Pickup => {"Pickup"},
+            InteractableType::DestroyedOnUse => {"DestroyedOnUse"},
+            InteractableType::Character => {"Character"},
+            InteractableType::Lever => {"Lever"},
+        };
+        write!(f, "{}",s.to_string())
+    }
+
+}
+
+
+#[derive(Debug, Component)]
+pub struct Interactable{
+    pub interactions: i64,
+    pub max_interactions: i64,
+    pub interaction_type: InteractableType,
+}
+
+impl Default for Interactable {
+    fn default() -> Self {
+        Interactable {
+            interactions: 0,
+            max_interactions: 1,
+            interaction_type: InteractableType::DestroyedOnUse,
+        }
+    }
+}
+
+impl Interactable {
+    pub fn interact(&mut self) {
+
+        one_time_use(&self);
+        (*self).interactions += 1;
+    }
+}
 
 #[derive(Debug, Component, Default)]
 pub struct Collectible;
