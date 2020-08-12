@@ -199,7 +199,7 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     };
     let i = Interactable {
         interactions: 0,
-        max_interactions: 0,
+        max_interactions: 1,
         interaction_type: InteractableType::Chest
     };
     world
@@ -217,6 +217,18 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     Ok(())
 }
 
+enum Spawner {
+    Fruit,
+    Chests,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Gamestate {
+    Running,
+    Pause,
+    Menu,
+}
+
 pub fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video().expect("Could not init video system");
@@ -231,6 +243,7 @@ pub fn main() -> Result<(), String> {
         .into_canvas()
         .build()
         .expect("Could not make a canvas");
+
     let texture_creator = canvas.texture_creator();
 
     let mut dispatcher = DispatcherBuilder::new()
@@ -253,11 +266,14 @@ pub fn main() -> Result<(), String> {
 
     let mut draw_bounding_box = true;
     let mut draw_interaction_zone = true;
+    let mut thegame = Gamestate::Running;
 
     world.insert(movement_command);
     world.insert(world_clock);
     world.insert(player_command);
+    world.insert(thegame);
     world.register::<EntityAnimation>();
+    
 
     let textures = [
         texture_creator.load_texture("assets/bardo.png")?,
@@ -301,6 +317,7 @@ pub fn main() -> Result<(), String> {
         ),
     };
     let mut starting_velocity_npc: VecDeque<Direction> = VecDeque::new();
+    let mut spawn_index = Spawner::Chests;
 
     starting_velocity_npc.push_back(Direction::Up);
 
@@ -332,6 +349,7 @@ pub fn main() -> Result<(), String> {
     let mut i: i64 = 4;
     let mut going_up: i8 = 3;
     let mut event_pump = sdl_context.event_pump()?;
+    let mut thegame = Gamestate::Running;
     'running: loop {
         if (i > 100) | (i < 3) {
             going_up *= -1;
@@ -339,6 +357,7 @@ pub fn main() -> Result<(), String> {
         i += going_up as i64;
         // println!("i = {}", i);
         color.b = 100 + i as u8;
+        
         let mut movement_command: VecDeque<Option<MovementCommand>> = VecDeque::new();
         let mut player_command: Option<PlayerCommands> = None;
 
@@ -425,12 +444,43 @@ pub fn main() -> Result<(), String> {
                     draw_interaction_zone = !draw_interaction_zone;
                 }
 
+                Event::KeyDown {
+                    keycode: Some(Keycode::Num1),
+                    ..
+                } => {
+                    spawn_index = Spawner::Chests;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Num2),
+                    ..
+                } => {
+                    spawn_index = Spawner::Fruit;
+                }
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::Kp0),
+                    ..
+                } => {
+                    println!("Pausing!");
+                    thegame = Gamestate::Pause;
+                }
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::Kp1),
+                    ..
+                } => {
+                    thegame = Gamestate::Running;
+                }
+
                 Event::MouseButtonDown{x, y, ..} => {
-                    println!("Mouse down! ({}, {})", x, y);
                     let (w, h) = canvas.output_size()?;
                     let w = w as i32;
                     let h = h as i32;
-                    spawn_chest(&mut world, x-w/2, y-h/2)?; 
+                    match spawn_index {
+                        Spawner::Chests => spawn_chest(&mut world, x-w/2, y-h/2)?,
+                        Spawner::Fruit => spawn_fruit(&mut world, x-w/2, y-h/2)?,
+                    }
+                    
                 },
 
                 Event::KeyDown{
@@ -454,6 +504,7 @@ pub fn main() -> Result<(), String> {
         *world.write_resource() = movement_command;
         *world.write_resource() = world_clock;
         *world.write_resource() = player_command;
+        *world.write_resource() = thegame;
 
         // Update
         dispatcher.dispatch(&world);

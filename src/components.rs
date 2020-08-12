@@ -81,7 +81,14 @@ impl Default for Interactable {
 
 impl Interactable {
     pub fn interact(&mut self) {
-
+        use InteractableType::*;
+        match (*self).interaction_type {
+            Chest => (chest(&self)),
+            Pickup => (),
+            DestroyedOnUse => (),
+            Character => (),
+            Lever => (),
+        }
         one_time_use(&self);
         (*self).interactions += 1;
     }

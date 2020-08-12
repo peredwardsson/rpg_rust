@@ -21,7 +21,8 @@ impl<'a> System<'a> for Animator {
     ): Self::SystemData) {
         use crate::components::Direction::*;
         
-        for (anim, sprite, vel) in (&mut moveanimation, &mut sprite, &velocity).join() {    
+        for (anim, sprite, vel) in (&mut moveanimation, &mut sprite, &velocity).join() {
+            // In here, we animate movement.
             if vel.direction.is_empty() {
                 continue;
             }
@@ -38,6 +39,7 @@ impl<'a> System<'a> for Animator {
         }
 
         for (anim, sprite, obj) in (&mut entanimation, &mut sprite, &interactable).join() {
+            // In here, we animate interactables.
             if obj.interactions > 0 {
             let frames = &anim.frames;
             *sprite = frames[anim.current_frame];
