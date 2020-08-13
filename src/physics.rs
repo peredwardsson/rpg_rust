@@ -19,7 +19,6 @@ impl<'a> System<'a> for Physics {
         WriteStorage<'a, FlagForMovement>,
         ReadStorage<'a, Playable>,
         ReadStorage<'a, Unplayable>,
-        WriteStorage<'a, InteractionZone>
     );
 
     fn run(
@@ -29,11 +28,10 @@ impl<'a> System<'a> for Physics {
             velocity, 
             collisionbox, 
             mut movementflags, 
-            playableflag, 
+            _playableflag, 
             unplayableflag,
-            interactionzone,
         ): Self::SystemData) {
-        let a = interactionzone;
+
         let mut new_pos = Position::default();
         for (pos, vel, _, flag) in (&position, &velocity, &collisionbox, &mut movementflags).join() {
             if !vel.direction.is_empty() { 

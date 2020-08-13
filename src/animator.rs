@@ -4,6 +4,7 @@ use crate::components::*;
 pub struct Animator;
 
 impl<'a> System<'a> for Animator {
+    
     type SystemData = (
         WriteStorage<'a, MovementAnimation>,
         WriteStorage<'a, Sprite>, 
@@ -41,13 +42,13 @@ impl<'a> System<'a> for Animator {
         for (anim, sprite, obj) in (&mut entanimation, &mut sprite, &interactable).join() {
             // In here, we animate interactables.
             if obj.interactions > 0 {
-            let frames = &anim.frames;
-            *sprite = frames[anim.current_frame];
-            if anim.current_frame < frames.len()-1 {
-                anim.current_frame += 1;
-            } else {
-                continue;
-            }
+                let frames = &anim.frames;
+                *sprite = frames[anim.current_frame];
+                if anim.current_frame < frames.len()-1 {
+                    anim.current_frame += 1;
+                } else {
+                    continue;
+                }
             }
             
         }

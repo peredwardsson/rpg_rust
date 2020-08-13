@@ -1,11 +1,27 @@
 use crate::components::*;
 
-pub fn one_time_use(obj: &Interactable) {
+pub fn interacted_with_object(obj: &Interactable) {
     println!("Ryan used this like an object:");
     println!("{:?}", obj);
 }
 
-pub fn chest(obj: &Interactable) {
+pub fn chest(_obj: &Interactable) {
     let item = "potion";
     println!("You found a {}!", item);
+}
+
+pub fn pickup(_obj: &Interactable) {
+    println!("Pickup not implemented yet!");
+}
+
+pub fn destroyed_on_use(_obj: &Interactable) {
+    println!("Destroyed on use not implemented yet!");
+}
+
+pub fn character (_obj: &Interactable) {
+    println!("Character not implemented yet!");
+}
+
+pub fn lever (_obj: &Interactable) {
+    println!("Lever not implemented yet!");
 }

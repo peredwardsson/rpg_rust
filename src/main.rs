@@ -1,3 +1,9 @@
+// Project has come along quite well atm. A few paths for upcoming goals are
+// - Implement an editor to easily add collision maps for background images. This requires some GUI and some serialization.
+// - Add dialogue support. Read from file, modify game state, that kinda thing.
+// - Add animations for attacks. This path will go by animation in PS (or something). Quite the detour, but very interesting.
+
+
 mod animator;
 mod collisions;
 mod components;
@@ -148,6 +154,67 @@ pub fn add_player(world: &mut World) -> Result<(), String> {
     Ok(())
 }
 
+pub fn add_reaper(world: &mut World) -> Result<(), String> {
+    let reaper_texture_idx = 1;
+    let reaper_top_left = Rect::new(
+        0,
+        0,
+        SPRITE_WIDTH_REAPER as u32,
+        SPRITE_HEIGHT_REAPER as u32,
+    );
+    let reaper_animations = MovementAnimation {
+        current_frame: 0,
+        up_frames: generate_animation(
+            reaper_texture_idx,
+            reaper_top_left,
+            Direction::Up,
+            SPRITE_WIDTH_REAPER,
+        ),
+        right_frames: generate_animation(
+            reaper_texture_idx,
+            reaper_top_left,
+            Direction::Right,
+            SPRITE_WIDTH_REAPER,
+        ),
+        down_frames: generate_animation(
+            reaper_texture_idx,
+            reaper_top_left,
+            Direction::Down,
+            SPRITE_WIDTH_REAPER,
+        ),
+        left_frames: generate_animation(
+            reaper_texture_idx,
+            reaper_top_left,
+            Direction::Left,
+            SPRITE_WIDTH_REAPER,
+        ),
+    };
+    let mut starting_velocity_npc: VecDeque<Direction> = VecDeque::new();
+    world
+        .create_entity()
+        .with(Position(Point::new(50, 50)))
+        .with(NPCWalker)
+        .with(Velocity {
+            speed: 0,
+            direction: starting_velocity_npc,
+        })
+        .with(reaper_animations.down_frames[0])
+        .with(Interactable{
+            interaction_type: InteractableType::Character,
+            interactions: 0,
+            max_interactions: 0,
+        })
+        .with(Unplayable)
+        .with(CollisionBox {
+            width: SPRITE_WIDTH_REAPER as u32,
+            height: SPRITE_HEIGHT_REAPER as u32,
+        })
+        .with(reaper_animations.clone())
+        .build();
+
+    Ok(())
+}
+
 pub fn spawn_fruit(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     let spritesheet = 2;
 
@@ -282,65 +349,10 @@ pub fn main() -> Result<(), String> {
         texture_creator.load_texture("assets/chest.png")?,
     ];
     
-    let reaper_texture_idx = 1;
-    let reaper_top_left = Rect::new(
-        0,
-        0,
-        SPRITE_WIDTH_REAPER as u32,
-        SPRITE_HEIGHT_REAPER as u32,
-    );
-    let reaper_animations = MovementAnimation {
-        current_frame: 0,
-        up_frames: generate_animation(
-            reaper_texture_idx,
-            reaper_top_left,
-            Direction::Up,
-            SPRITE_WIDTH_REAPER,
-        ),
-        right_frames: generate_animation(
-            reaper_texture_idx,
-            reaper_top_left,
-            Direction::Right,
-            SPRITE_WIDTH_REAPER,
-        ),
-        down_frames: generate_animation(
-            reaper_texture_idx,
-            reaper_top_left,
-            Direction::Down,
-            SPRITE_WIDTH_REAPER,
-        ),
-        left_frames: generate_animation(
-            reaper_texture_idx,
-            reaper_top_left,
-            Direction::Left,
-            SPRITE_WIDTH_REAPER,
-        ),
-    };
-    let mut starting_velocity_npc: VecDeque<Direction> = VecDeque::new();
     let mut spawn_index = Spawner::Chests;
 
-    starting_velocity_npc.push_back(Direction::Up);
-
     add_player(&mut world)?;
-
-    // Create another thing
-    world
-        .create_entity()
-        .with(Position(Point::new(50, 50)))
-        .with(NPCWalker)
-        .with(Velocity {
-            speed: 0,
-            direction: starting_velocity_npc,
-        })
-        .with(reaper_animations.right_frames[0])
-        .with(Unplayable)
-        .with(CollisionBox {
-            width: SPRITE_WIDTH_REAPER as u32,
-            height: SPRITE_HEIGHT_REAPER as u32,
-        })
-        .with(reaper_animations.clone())
-        .build();
-
+    add_reaper(&mut world)?;
     
     world_clock = Some(Instant::now());
 
@@ -349,7 +361,8 @@ pub fn main() -> Result<(), String> {
     let mut i: i64 = 4;
     let mut going_up: i8 = 3;
     let mut event_pump = sdl_context.event_pump()?;
-    let mut thegame = Gamestate::Running;
+    //let mut thegame = Gamestate::Running;
+
     'running: loop {
         if (i > 100) | (i < 3) {
             going_up *= -1;
@@ -362,115 +375,51 @@ pub fn main() -> Result<(), String> {
         let mut player_command: Option<PlayerCommands> = None;
 
         for event in event_pump.poll_iter() {
-            // TODO: Add support for setting draw_bounding and draw_interaction.
             match event {
                 Event::Quit { .. } | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     repeat: false,
                     ..
                 } => break 'running,
+
                 Event::KeyDown {
-                    keycode: Some(Keycode::Up),
-                    repeat: false,
+                    keycode: Some(key),
                     ..
                 } => {
-                    movement_command.push_back(Some(MovementCommand::Move(Direction::Up)));
+                    match key {
+                        // Player Actions
+                        Keycode::Up => movement_command.push_back(Some(MovementCommand::Move(Direction::Up))), 
+                        Keycode::Down => movement_command.push_back(Some(MovementCommand::Move(Direction::Down))),
+                        Keycode::Right => movement_command.push_back(Some(MovementCommand::Move(Direction::Right))),
+                        Keycode::Left => movement_command.push_back(Some(MovementCommand::Move(Direction::Left))),
+                        Keycode::Z => {player_command = Some(PlayerCommands::Interact)},
+
+
+                        // Debugging
+                        Keycode::F1 => draw_bounding_box = !draw_bounding_box,
+                        Keycode::F2 => draw_interaction_zone = !draw_interaction_zone,
+                        Keycode::Num1 => spawn_index = Spawner::Chests,
+                        Keycode::Num2 => spawn_index = Spawner::Fruit,
+                        Keycode::Kp0 => thegame = Gamestate::Pause,
+                        Keycode::Kp1 => thegame = Gamestate::Running,
+                        _ => {}
+                    }
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Down),
-                    repeat: false,
-                    ..
-                } => {
-                    movement_command.push_back(Some(MovementCommand::Move(Direction::Down)));
-                }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Left),
-                    repeat: false,
-                    ..
-                } => {
-                    movement_command.push_back(Some(MovementCommand::Move(Direction::Left)));
-                }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Right),
-                    repeat: false,
-                    ..
-                } => {
-                    movement_command.push_back(Some(MovementCommand::Move(Direction::Right)));
-                }
+
                 Event::KeyUp {
-                    keycode: Some(Keycode::Up),
+                    keycode: Some(key),
                     repeat: false,
                     ..
                 } => {
-                    //println!("KeyUp: Up");
-                    movement_command.push_back(Some(MovementCommand::Stop(Direction::Up)));
+                    match key {
+                        Keycode::Up => movement_command.push_back(Some(MovementCommand::Stop(Direction::Up))), 
+                        Keycode::Down => movement_command.push_back(Some(MovementCommand::Stop(Direction::Down))),
+                        Keycode::Right => movement_command.push_back(Some(MovementCommand::Stop(Direction::Right))),
+                        Keycode::Left => movement_command.push_back(Some(MovementCommand::Stop(Direction::Left))),
+                        _ => {}
+                    }
                 }
-                Event::KeyUp {
-                    keycode: Some(Keycode::Down),
-                    repeat: false,
-                    ..
-                } => {
-                    //println!("KeyUp: Down");
-                    movement_command.push_back(Some(MovementCommand::Stop(Direction::Down)));
-                }
-                Event::KeyUp {
-                    keycode: Some(Keycode::Left),
-                    repeat: false,
-                    ..
-                } => {
-                    //println!("KeyUp: Left");
-                    movement_command.push_back(Some(MovementCommand::Stop(Direction::Left)));
-                }
-                Event::KeyUp {
-                    keycode: Some(Keycode::Right),
-                    repeat: false,
-                    ..
-                } => {
-                    movement_command.push_back(Some(MovementCommand::Stop(Direction::Right)));
-                    //println!("KeyUp: Right");
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::F1),
-                    ..
-                } => {
-                    draw_bounding_box = !draw_bounding_box;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::F2),
-                    ..
-                } => {
-                    draw_interaction_zone = !draw_interaction_zone;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::Num1),
-                    ..
-                } => {
-                    spawn_index = Spawner::Chests;
-                }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Num2),
-                    ..
-                } => {
-                    spawn_index = Spawner::Fruit;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::Kp0),
-                    ..
-                } => {
-                    println!("Pausing!");
-                    thegame = Gamestate::Pause;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::Kp1),
-                    ..
-                } => {
-                    thegame = Gamestate::Running;
-                }
+                
 
                 Event::MouseButtonDown{x, y, ..} => {
                     let (w, h) = canvas.output_size()?;
@@ -482,20 +431,6 @@ pub fn main() -> Result<(), String> {
                     }
                     
                 },
-
-                Event::KeyDown{
-                    keycode: Some(Keycode::Z),
-                    ..
-                } => {
-                    player_command = Some(PlayerCommands::Interact);
-                }
-                Event::KeyUp{
-                    keycode: Some(Keycode::Z),
-                    ..
-                } => {
-                    //println!("{:?}", world.entities().);
-                    player_command = None;
-                }
 
                 _ => {}
             }

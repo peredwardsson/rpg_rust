@@ -23,7 +23,7 @@ impl<'a> System<'a> for Keyboard {
         WriteStorage<'a, Interactable>,
         ReadStorage<'a, InteractionZone>,
         Entities<'a>,
-        ReadExpect<'a, Gamestate>,
+        WriteExpect<'a, Gamestate>,
     );
 
     fn run(&mut self, 
@@ -34,11 +34,11 @@ impl<'a> System<'a> for Keyboard {
         position,
         mut velocity,
         mut facing,
-        collisionbox,
+        _collisionbox,
         mut interactable,
         interactionzone,
-        entities,
-        gamestate
+        _entities,
+        mut gamestate
     ): Self::SystemData) {
         match *gamestate {
             Gamestate::Running => {
@@ -90,13 +90,13 @@ impl<'a> System<'a> for Keyboard {
 
                     },
                     Some(PlayerCommands::Menu) => {
-
+                        *gamestate = Gamestate::Menu;
                     },
                     None => {}
                 };
 
             },
-            _ => {}
+            _ => {gamestate;}
         }
     }
 }

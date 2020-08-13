@@ -39,6 +39,7 @@ pub struct Facing {
     pub direction: Direction,
 }
 
+#[allow(dead_code)]
 pub enum InteractableType {
     Chest,
     Pickup,
@@ -81,16 +82,19 @@ impl Default for Interactable {
 
 impl Interactable {
     pub fn interact(&mut self) {
-        use InteractableType::*;
+        interacted_with_object(&self);
         match (*self).interaction_type {
-            Chest => (chest(&self)),
-            Pickup => (),
-            DestroyedOnUse => (),
-            Character => (),
-            Lever => (),
+            InteractableType::Chest => (chest(&self)),
+            InteractableType::Pickup => (pickup(&self)),
+            InteractableType::DestroyedOnUse => (destroyed_on_use(&self)),
+            InteractableType::Character => (character(&self)),
+            InteractableType::Lever => (lever(&self)),
         }
-        one_time_use(&self);
-        (*self).interactions += 1;
+        if ((*self).max_interactions > (*self).interactions) |
+        ((*self).max_interactions == 0) {
+            (*self).interactions += 1;
+        }
+        
     }
 }
 
@@ -145,6 +149,7 @@ pub struct CollisionBox {
 }
 
 impl CollisionBox {
+    #[allow(dead_code)]
     pub fn flip (&mut self) {
         let w = self.width;
         let h = self.height;
