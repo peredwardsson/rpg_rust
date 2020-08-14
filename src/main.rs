@@ -1,6 +1,6 @@
 // Project has come along quite well atm. A few paths for upcoming goals are
 // - Implement an editor to easily add collision maps for background images. This requires some GUI and some serialization.
-// - Add dialogue support. Read from file, modify game state, that kinda thing.
+// ->> Add dialogue support. Read from file, modify game state, that kinda thing.
 // - Add animations for attacks. This path will go by animation in PS (or something). Quite the detour, but very interesting.
 
 
@@ -91,6 +91,29 @@ pub enum MovementCommand {
 pub enum PlayerCommands {
     Interact,
     Menu,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Gamestate {
+    Running,
+    Pause,
+    Menu,
+    Dialogue,
+}
+
+enum Spawner {
+    Fruit,
+    Chests,
+}
+
+fn direction_to_animation_row(dir: Direction) -> i32 {
+    use Direction::*;
+    match dir {
+        Down => 0,
+        Left => SPRITE_HEIGHT_PLAYER as i32,
+        Right => 2 * SPRITE_HEIGHT_PLAYER as i32,
+        Up => 3 * SPRITE_HEIGHT_PLAYER as i32,
+    }
 }
 
 pub fn add_player(world: &mut World) -> Result<(), String> {
@@ -246,16 +269,6 @@ pub fn spawn_fruit(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     Ok(())
 }
 
-fn direction_to_animation_row(dir: Direction) -> i32 {
-    use Direction::*;
-    match dir {
-        Down => 0,
-        Left => SPRITE_HEIGHT_PLAYER as i32,
-        Right => 2 * SPRITE_HEIGHT_PLAYER as i32,
-        Up => 3 * SPRITE_HEIGHT_PLAYER as i32,
-    }
-}
-
 pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     let spritesheet = 3;
 
@@ -282,18 +295,6 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
         .with(chest_animation.frames[0])
         .build();
     Ok(())
-}
-
-enum Spawner {
-    Fruit,
-    Chests,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Gamestate {
-    Running,
-    Pause,
-    Menu,
 }
 
 pub fn main() -> Result<(), String> {

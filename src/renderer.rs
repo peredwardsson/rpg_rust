@@ -69,7 +69,6 @@ pub fn render(
             None,
             draw_bounding_boxes,
         )?;
-        //canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
     }
 
     for (pos, sprite, col,) in (&position, &sprite, &collision).join() {
@@ -82,14 +81,10 @@ pub fn render(
             (*col).clone(),
             draw_bounding_boxes,
         )?;
-        let current_frame = sprite.region;
-        let screen_coord = origin + pos.0;
-
-        let screen_rect = Rect::from_center(screen_coord, current_frame.width(), current_frame.height());
-        canvas.copy(&textures[sprite.spritesheet], current_frame, screen_rect)?;
 
         // Debug function
         if draw_bounding_boxes {
+            let screen_coord = origin + pos.0;
             canvas.draw_rect(Rect::from_center(screen_coord, col.width, col.height))?;
         }
     }
@@ -97,7 +92,7 @@ pub fn render(
 
     // Debug function
     if draw_interaction_zone {
-        for (pos, intzone) in (&position, &interaction).join() {
+        for intzone in (&interaction).join() {
             
             let mut zone = intzone.rect;
             let screen_coord = origin + zone.center();
