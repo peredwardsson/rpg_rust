@@ -1,0 +1,11 @@
+// Format:
+// @TODO
+
+: "Reaper", small
+Wow, I can't believe how long you managed to stay silent!
+
+: "Player", small
+It's a strange world we live in for sure. Here's to another moment.
+
+: "Reaper", small
+Moments are for suckers.

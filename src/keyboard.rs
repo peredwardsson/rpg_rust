@@ -1,6 +1,6 @@
 use specs::{WriteStorage, System, ReadStorage, WriteExpect, ReadExpect, join::Join, Entities};
 use crate::components::*;
-use std::collections::VecDeque;
+use std::{fs::File, collections::VecDeque, io::Read};
 //use sdl2::rect::{Rect, Point};
 
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
@@ -10,6 +10,7 @@ pub struct Keyboard;
 use super::MovementCommand;
 use super::PlayerCommands;
 use super::Gamestate;
+use regex::Regex;
 
 impl<'a> System<'a> for Keyboard {
     type SystemData = (
@@ -24,6 +25,8 @@ impl<'a> System<'a> for Keyboard {
         ReadStorage<'a, InteractionZone>,
         Entities<'a>,
         WriteExpect<'a, Gamestate>,
+        ReadStorage<'a, Dialogue>,
+        WriteExpect<'a, Vec<Dialogue_single_item>>
     );
 
     fn run(&mut self, 
@@ -38,8 +41,13 @@ impl<'a> System<'a> for Keyboard {
         mut interactable,
         interactionzone,
         _entities,
-        mut gamestate
+        mut gamestate,
+        dialogue,
+        mut dialogue_list,
+
     ): Self::SystemData) {
+        
+        let mut change_to_dialogue = false;
         match *gamestate {
             Gamestate::Running => {
                 // This clause takes care of movement
@@ -71,7 +79,7 @@ impl<'a> System<'a> for Keyboard {
                     Some(PlayerCommands::Interact) => {
                         // Todo: Make this work better when there are more than one interactable object in the zone.
                         for interzone in (&interactionzone).join() {
-                            for (obj_pos, object) in (&position, &mut interactable).join() {
+                            for (obj_pos, object, dialogue) in (&position, &mut interactable, (&dialogue).maybe()).join() {
                                 if interzone.rect.contains_point(obj_pos.0) & ( // Is there an object in the interaction zone?
                                     ( // Can we interact more with it?
                                         (object.interactions < object.max_interactions) &
@@ -80,9 +88,50 @@ impl<'a> System<'a> for Keyboard {
                                         object.max_interactions == 0
                                     )
                                 ) {
-                                    (*object).interact();
-                                    // Run the interaction!
-                                    //println!("Interacted with a thing!");
+                                    match (*object).interaction_type {
+                                        InteractableType::Character => {
+                                            if let Some(d) = dialogue {
+
+                                                //gamestate = Gamestate::Dialogue;
+
+                                                change_to_dialogue = true;
+                                                
+                                                let conversation_pattern = Regex::new(r#": "(.+)", (.+)\n(.+)"#).unwrap();
+
+                                                println!("Reading file {}", &d.dialogue_file);
+                                                let mut conv = String::new();
+                                                {
+                                                    let mut file = File::open(&d.dialogue_file).unwrap();
+                                                    file.read_to_string(&mut conv).unwrap();
+                                                }
+                                                
+                                                for cap in conversation_pattern.captures_iter(&conv) {
+                                                    dialogue_list.push(Dialogue_single_item {
+                                                        speaker_name: (&cap[1]).into(),
+                                                        background_size: Size3::Small,
+                                                        dialogue_text: (&cap[3]).into(),
+                                                    });
+                                                }
+
+                                                // TODO: All below
+                                                // If the gamestate is Running, set it to Dialogue
+                                                // - Load the first dialogue piece 
+                                                // Else, if gamestate is Dialogue, we have pressed the interact button with a dialogue. 
+                                                // - If there's more dialogue, Advance dialogue (1)
+                                                // - Else, set gamestate to Running.
+                                                // Q: Tricky - How to store the dialogue? Perhaps an iterator? Reduces (1) to some kind of .next() call.
+                                                // A: Iterator's can not be a field on a component because they are not multi-thread safe. Or more precisely because
+                                                //    the std::iter::Iterator doesn't implement the std::marker::Sync trait. Bummer. Load conversation on compile? 
+                                                //    Rather not atm, not for iterating the game...
+                                                // However, we could do loading text here in this scope...
+                                                
+                                                
+                                                //(*object).talk(d).unwrap()
+                                            };
+                                        },
+                                        _ => (*object).interact()
+                                    }
+                                    println!("Interacted with a {:?}", *object);
                                     continue;
                                 }
                             }
@@ -96,7 +145,18 @@ impl<'a> System<'a> for Keyboard {
                 };
 
             },
-            _ => {gamestate;}
+            Gamestate::Dialogue => {
+                println!("DIALOGUE DETECTED!! :D");
+                if let Some(PlayerCommands::Interact) = &*playercommands {
+                    println!("{:?}", (*dialogue_list).pop());
+                }
+            }
+            _ => {println!("Not running, player commands disabled.");}
         }
+        if change_to_dialogue {
+            *gamestate = Gamestate::Dialogue;
+            println!("Gamestate just changed, now {:?}", *gamestate);
+        }
+        
     }
 }

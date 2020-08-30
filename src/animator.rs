@@ -43,11 +43,11 @@ impl<'a> System<'a> for Animator {
             // In here, we animate interactables.
             if obj.interactions > 0 {
                 let frames = &anim.frames;
-                *sprite = frames[anim.current_frame];
-                if anim.current_frame < frames.len()-1 {
-                    anim.current_frame += 1;
-                } else {
+                if anim.current_frame >= frames.len()-1 {
                     continue;
+                } else {
+                    anim.current_frame += 1;
+                    *sprite = frames[anim.current_frame];
                 }
             }
             

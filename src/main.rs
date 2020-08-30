@@ -21,12 +21,23 @@ use sdl2::{
     image::{LoadTexture},
     keyboard::Keycode,
     rect::{Point, Rect},
+    pixels::PixelFormatEnum,
 };
 use std::time::{Duration, Instant};
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
+use noise::{Perlin, NoiseFn};
 
 use crate::components::*;
 use specs::prelude::*;
+
+
+
+extern crate sdl2;
+
+use std::env;
+use std::path::Path;
+
+use sdl2::render::TextureQuery;
 
 const SPRITE_WIDTH_PLAYER: i32 = 26;
 const SPRITE_HEIGHT_PLAYER: i32 = 36;
@@ -73,9 +84,9 @@ fn generate_animation_chest(
         frames.push(Sprite {
             spritesheet: spritesheet_idx,
             region: Rect::new(
-                SPRITE_WIDTH_CHEST * i, 
+                SPRITE_WIDTH_CHEST * i,
                 0,
-                SPRITE_WIDTH_CHEST as u32, 
+                SPRITE_WIDTH_CHEST as u32,
                 SPRITE_HEIGHT_CHEST as u32),
         })
     }
@@ -91,14 +102,6 @@ pub enum MovementCommand {
 pub enum PlayerCommands {
     Interact,
     Menu,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Gamestate {
-    Running,
-    Pause,
-    Menu,
-    Dialogue,
 }
 
 enum Spawner {
@@ -118,7 +121,7 @@ fn direction_to_animation_row(dir: Direction) -> i32 {
 
 pub fn add_player(world: &mut World) -> Result<(), String> {
     let player_texture_idx = 0;
-    
+
     let player_top_left = Rect::new(
         0,
         0,
@@ -212,7 +215,17 @@ pub fn add_reaper(world: &mut World) -> Result<(), String> {
             SPRITE_WIDTH_REAPER,
         ),
     };
-    let mut starting_velocity_npc: VecDeque<Direction> = VecDeque::new();
+    let starting_velocity_npc: VecDeque<Direction> = VecDeque::new();
+
+    let dialogue = Dialogue {
+        sprite : Sprite {
+            spritesheet: 4,
+            region: Rect::new(0, 0, 800, 200)
+        },
+        dialogue_file: "assets/test_dialogue.txt".to_string(),
+        show: false,
+    };
+
     world
         .create_entity()
         .with(Position(Point::new(50, 50)))
@@ -233,6 +246,7 @@ pub fn add_reaper(world: &mut World) -> Result<(), String> {
             height: SPRITE_HEIGHT_REAPER as u32,
         })
         .with(reaper_animations.clone())
+        .with(dialogue)
         .build();
 
     Ok(())
@@ -297,6 +311,24 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     Ok(())
 }
 
+pub fn load_dialogue(world: &mut World) -> Result<(), String> {
+    let spritesheet = vec![4, 5, 6];
+    let small_dialogue_sprite = Sprite {
+        region: Rect::new(0, 0, 800, 200),
+        spritesheet: spritesheet[0],
+    };
+    let medium_dialogue_sprite = Sprite {
+        region: Rect::new(0, 0, 800, 400),
+        spritesheet: spritesheet[1],
+    };
+    let large_dialogue_sprite = Sprite {
+        region: Rect::new(0, 0, 800, 600),
+        spritesheet: spritesheet[2],
+    };
+
+    Ok(())
+}
+
 pub fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video().expect("Could not init video system");
@@ -319,8 +351,8 @@ pub fn main() -> Result<(), String> {
         .with(physics::Physics, "Physics", &["Keyboard"])
         .with(animator::Animator, "Animator", &["Keyboard", "Physics"])
         .with(randomwalker::RandomWalker, "RandomWalker", &["Physics"])
-        .with(collectibles::Collectibles, "Collectibles",&["Physics", "Animator"])
-        .with(update_interaction::IZUpdater, "Interaction Zone", &["Physics"])
+        .with(collectibles::Collectibles, "Collectibles",&["Physics", "Animator", "Keyboard"])
+        .with(update_interaction::IZUpdater, "Interaction Zone", &["Physics", "Keyboard"])
         .build();
 
     let mut world_clock: Option<Instant> = None;
@@ -328,53 +360,92 @@ pub fn main() -> Result<(), String> {
     let mut world = World::new();
     dispatcher.setup(&mut world);
     renderer::SystemData::setup(&mut world);
-    
+
     let movement_command: VecDeque<Option<MovementCommand>> = VecDeque::new();
     let player_command: Option<PlayerCommands> = None;
 
     let mut draw_bounding_box = true;
     let mut draw_interaction_zone = true;
     let mut thegame = Gamestate::Running;
+    let mut dialogue_list: Vec<Dialogue_single_item> = Vec::new();
 
     world.insert(movement_command);
     world.insert(world_clock);
     world.insert(player_command);
     world.insert(thegame);
+    world.insert(dialogue_list);
     world.register::<EntityAnimation>();
-    
+
 
     let textures = [
         texture_creator.load_texture("assets/bardo.png")?,
         texture_creator.load_texture("assets/reaper.png")?,
         texture_creator.load_texture("assets/food.png")?,
         texture_creator.load_texture("assets/chest.png")?,
+        texture_creator.load_texture("assets/dialogue_800x200.png")?,
+        texture_creator.load_texture("assets/dialogue_800x400.png")?,
+        texture_creator.load_texture("assets/dialogue_800x600.png")?,
     ];
-    
+
+    let mut texture_idx = HashMap::new(); // maybe unused? 
+    texture_idx.insert("player".to_string(), 0);
+    texture_idx.insert("reaper".to_string(), 1);
+    texture_idx.insert("food".to_string(), 2);
+    texture_idx.insert("chest".to_string(), 3);
+    texture_idx.insert("dialogue_small".to_string(), 4);
+    texture_idx.insert("dialogue_medium".to_string(), 5);
+    texture_idx.insert("dialogue_large".to_string(), 6);
+
     let mut spawn_index = Spawner::Chests;
 
     add_player(&mut world)?;
     add_reaper(&mut world)?;
-    
+
     world_clock = Some(Instant::now());
 
-    let mut color: Color = Color::RGB(100, 255, 0);
+    // Gradient test
+    let p = Perlin::new();
+    let mut background_texture = texture_creator.
+    create_texture_streaming(PixelFormatEnum::RGB24, 256, 256)
+        .map_err(|e| e.to_string())?;
+    // Create a red-green gradient
+    background_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        let perlin = Perlin::new();
 
+        fn noise(x: f64, y: f64, per: &Perlin) -> f64 {
+            let p: [f64; 2] = [x as f64, y as f64];
+            per.get(p)
+            //println!("x = {}, y = {}, out = {}", x, y, out);
+        }
+
+        for y in 0..256 {
+            for x in 0..256 {
+                let offset = y*pitch + x*3;
+                let output = (noise(x as f64 /255.0, y as f64/255.0, &perlin)*100f64) as u8;
+                //println!("{}", output);
+                buffer[offset] = output;
+                buffer[offset + 1] = output;
+                buffer[offset + 2] = output;
+            }
+        }
+    })?;
+
+    let mut color: Color = Color::RGB(100, 255, 0);
     let mut i: i64 = 4;
     let mut going_up: i8 = 3;
+
     let mut event_pump = sdl_context.event_pump()?;
-    //let mut thegame = Gamestate::Running;
+
 
     'running: loop {
         if (i > 100) | (i < 3) {
             going_up *= -1;
         }
         i += going_up as i64;
-        // println!("i = {}", i);
         color.b = 100 + i as u8;
-        
         let mut movement_command: VecDeque<Option<MovementCommand>> = VecDeque::new();
         let mut player_command: Option<PlayerCommands> = None;
-
+        //println!("Gamestate before catching events: {:?}", thegame);
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown {
@@ -389,7 +460,7 @@ pub fn main() -> Result<(), String> {
                 } => {
                     match key {
                         // Player Actions
-                        Keycode::Up => movement_command.push_back(Some(MovementCommand::Move(Direction::Up))), 
+                        Keycode::Up => movement_command.push_back(Some(MovementCommand::Move(Direction::Up))),
                         Keycode::Down => movement_command.push_back(Some(MovementCommand::Move(Direction::Down))),
                         Keycode::Right => movement_command.push_back(Some(MovementCommand::Move(Direction::Right))),
                         Keycode::Left => movement_command.push_back(Some(MovementCommand::Move(Direction::Left))),
@@ -402,7 +473,10 @@ pub fn main() -> Result<(), String> {
                         Keycode::Num1 => spawn_index = Spawner::Chests,
                         Keycode::Num2 => spawn_index = Spawner::Fruit,
                         Keycode::Kp0 => thegame = Gamestate::Pause,
-                        Keycode::Kp1 => thegame = Gamestate::Running,
+                        Keycode::Kp1 => {
+                            thegame = Gamestate::Running;
+                            println!("Setting Gamestate to Running");
+                        },
                         _ => {}
                     }
                 }
@@ -413,14 +487,14 @@ pub fn main() -> Result<(), String> {
                     ..
                 } => {
                     match key {
-                        Keycode::Up => movement_command.push_back(Some(MovementCommand::Stop(Direction::Up))), 
+                        Keycode::Up => movement_command.push_back(Some(MovementCommand::Stop(Direction::Up))),
                         Keycode::Down => movement_command.push_back(Some(MovementCommand::Stop(Direction::Down))),
                         Keycode::Right => movement_command.push_back(Some(MovementCommand::Stop(Direction::Right))),
                         Keycode::Left => movement_command.push_back(Some(MovementCommand::Stop(Direction::Left))),
                         _ => {}
                     }
                 }
-                
+
 
                 Event::MouseButtonDown{x, y, ..} => {
                     let (w, h) = canvas.output_size()?;
@@ -430,13 +504,13 @@ pub fn main() -> Result<(), String> {
                         Spawner::Chests => spawn_chest(&mut world, x-w/2, y-h/2)?,
                         Spawner::Fruit => spawn_fruit(&mut world, x-w/2, y-h/2)?,
                     }
-                    
+
                 },
 
                 _ => {}
             }
         }
-
+        //println!("Gamestate after catching events: {:?}", thegame);
         *world.write_resource() = movement_command;
         *world.write_resource() = world_clock;
         *world.write_resource() = player_command;
@@ -447,15 +521,16 @@ pub fn main() -> Result<(), String> {
         world.maintain();
 
         // Render
-        renderer::render(&mut canvas, 
-            color, 
-            &textures, 
-            world.system_data(), 
-            draw_bounding_box, 
-            draw_interaction_zone)?;
-
+        renderer::render(&mut canvas,
+            color,
+            &textures,
+            world.system_data(),
+            draw_bounding_box,
+            draw_interaction_zone,
+            &background_texture,
+        )?;
         // Time Management
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 20));
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 10));
     }
 
     Ok(())

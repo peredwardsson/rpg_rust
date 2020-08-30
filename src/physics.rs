@@ -2,12 +2,6 @@ use specs::{WriteStorage, System, ReadStorage, join::Join};
 use sdl2::rect::{Rect};
 use crate::components::*;
 
-// The stuff we want from a movement system:
-// 1. Pressing any movement key m starts moving us on direction m.
-// 2. Pressing anonter button afterwards should do nothing if in motion. 
-// 3. 
-//  
-
 pub struct Physics;
 
 impl<'a> System<'a> for Physics {

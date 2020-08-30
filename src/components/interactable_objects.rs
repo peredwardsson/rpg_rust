@@ -1,5 +1,7 @@
 use crate::components::*;
 use super::super::Gamestate;
+use std::fs::File;
+use std::io::prelude::*;
 
 // components::sdl-test2::Gamestate
 pub fn interacted_with_object(obj: &Interactable) {
@@ -7,28 +9,28 @@ pub fn interacted_with_object(obj: &Interactable) {
     println!("{:?}", obj);
 }
 
-pub fn chest(_obj: &Interactable) {
+pub fn chest(_obj: &Interactable)-> std::io::Result<()> {
     let item = "potion";
     println!("You found a {}!", item);
+    Ok(())
 }
 
-pub fn pickup(_obj: &Interactable) {
+pub fn pickup(_obj: &Interactable)-> std::io::Result<()> {
     println!("Pickup not implemented yet!");
+    Ok(())
 }
 
-pub fn destroyed_on_use(_obj: &Interactable) {
+pub fn destroyed_on_use(_obj: &Interactable) -> std::io::Result<()> {
     println!("Destroyed on use not implemented yet!");
+    Ok(())
 }
 
-pub fn character (_obj: &Interactable, mut thegame: Gamestate) {
-    
-    thegame = Gamestate::Dialogue;
-    
-    // Do dialogue stuff
+pub fn character (_obj: &Interactable, thegame: &mut Gamestate, dialogue: &mut Dialogue) -> std::io::Result<()> {
 
-    thegame = Gamestate::Running;
+    Ok(())
 }
 
-pub fn lever (_obj: &Interactable) {
+pub fn lever (_obj: &Interactable) -> std::io::Result<()> {
     println!("Lever not implemented yet!");
+    Ok(())
 }
