@@ -33,7 +33,7 @@ pub struct Dialogue {
 }
 
 #[derive(Debug)]
-pub struct Dialogue_single_item {
+pub struct Dialogue_Single_item {
     pub speaker_name: String,
     pub dialogue_text: String,
     pub background_size: Size3,
@@ -131,30 +131,7 @@ impl Interactable {
         }
     }
 
-    pub fn talk(&mut self, dialogue: &Dialogue) -> std::io::Result<()> {
-        let conversation_pattern = Regex::new(r#": "(.+)", (.+)\n(.+)"#).unwrap();
-
-        match (*self).interaction_type {
-            InteractableType::Character => {
-                println!("Reading file {}", &dialogue.dialogue_file);
-                let mut conv = String::new();
-                {
-                    let mut file = File::open(&dialogue.dialogue_file)?;
-                    file.read_to_string(&mut conv)?;
-                }
-                println!("{:?}", conversation_pattern.captures_len());
-                for (i, cap) in conversation_pattern.captures_iter(&conv).enumerate() {
-                    
-                    println!("{}", &cap[1]);
-                    println!("\t{}", &cap[3]);
-                }
-
-            },
-            _ => {self.interact()}
-        };
-
-        Ok(())
-    }
+    
 }
 
 #[derive(Debug, Component, Default)]

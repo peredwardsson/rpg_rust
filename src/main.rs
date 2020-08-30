@@ -367,7 +367,7 @@ pub fn main() -> Result<(), String> {
     let mut draw_bounding_box = true;
     let mut draw_interaction_zone = true;
     let mut thegame = Gamestate::Running;
-    let mut dialogue_list: Vec<Dialogue_single_item> = Vec::new();
+    let mut dialogue_list: VecDeque<Dialogue_Single_item> = VecDeque::new();
 
     world.insert(movement_command);
     world.insert(world_clock);
@@ -472,10 +472,14 @@ pub fn main() -> Result<(), String> {
                         Keycode::F2 => draw_interaction_zone = !draw_interaction_zone,
                         Keycode::Num1 => spawn_index = Spawner::Chests,
                         Keycode::Num2 => spawn_index = Spawner::Fruit,
-                        Keycode::Kp0 => thegame = Gamestate::Pause,
+                        Keycode::Kp0 => {
+                            thegame = Gamestate::Pause;
+                            *world.write_resource() = thegame;
+                        }
                         Keycode::Kp1 => {
                             thegame = Gamestate::Running;
-                            println!("Setting Gamestate to Running");
+                            *world.write_resource() = thegame;
+                            //println!("Setting Gamestate to Running");
                         },
                         _ => {}
                     }
@@ -514,7 +518,7 @@ pub fn main() -> Result<(), String> {
         *world.write_resource() = movement_command;
         *world.write_resource() = world_clock;
         *world.write_resource() = player_command;
-        *world.write_resource() = thegame;
+        //*world.write_resource() = thegame;
 
         // Update
         dispatcher.dispatch(&world);
@@ -530,7 +534,7 @@ pub fn main() -> Result<(), String> {
             &background_texture,
         )?;
         // Time Management
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 10));
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 20));
     }
 
     Ok(())

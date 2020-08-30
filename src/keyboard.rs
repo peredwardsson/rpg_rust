@@ -26,7 +26,7 @@ impl<'a> System<'a> for Keyboard {
         Entities<'a>,
         WriteExpect<'a, Gamestate>,
         ReadStorage<'a, Dialogue>,
-        WriteExpect<'a, Vec<Dialogue_single_item>>
+        WriteExpect<'a, VecDeque<Dialogue_Single_item>>
     );
 
     fn run(&mut self, 
@@ -106,7 +106,7 @@ impl<'a> System<'a> for Keyboard {
                                                 }
                                                 
                                                 for cap in conversation_pattern.captures_iter(&conv) {
-                                                    dialogue_list.push(Dialogue_single_item {
+                                                    dialogue_list.push_back(Dialogue_Single_item {
                                                         speaker_name: (&cap[1]).into(),
                                                         background_size: Size3::Small,
                                                         dialogue_text: (&cap[3]).into(),
@@ -131,7 +131,7 @@ impl<'a> System<'a> for Keyboard {
                                         },
                                         _ => (*object).interact()
                                     }
-                                    println!("Interacted with a {:?}", *object);
+                                    //println!("Interacted with a {:?}", *object);
                                     continue;
                                 }
                             }
@@ -146,16 +146,16 @@ impl<'a> System<'a> for Keyboard {
 
             },
             Gamestate::Dialogue => {
-                println!("DIALOGUE DETECTED!! :D");
+                //println!("DIALOGUE DETECTED!! :D");
                 if let Some(PlayerCommands::Interact) = &*playercommands {
-                    println!("{:?}", (*dialogue_list).pop());
+                    (*dialogue_list).pop_front();
+                    //println!("{:?}", (*dialogue_list).pop_front());
                 }
             }
             _ => {println!("Not running, player commands disabled.");}
         }
         if change_to_dialogue {
             *gamestate = Gamestate::Dialogue;
-            println!("Gamestate just changed, now {:?}", *gamestate);
         }
         
     }

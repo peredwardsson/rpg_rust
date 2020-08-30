@@ -1,9 +1,9 @@
 use specs::{ReadStorage, join::Join, ReadExpect};
 use crate::components::*;
-use sdl2::render::{WindowCanvas, Texture};
+use sdl2::render::{WindowCanvas, Texture, TextureCreator};
 use sdl2::pixels::Color;
-use sdl2::rect::{Point, Rect};
-use std::collections::HashMap;
+use sdl2::{video::WindowContext, rect::{Point, Rect}};
+use std::collections::{HashMap, VecDeque};
 
 pub type SystemData<'a> = (
     ReadStorage<'a, Position>,
@@ -12,6 +12,7 @@ pub type SystemData<'a> = (
     ReadStorage<'a, InteractionZone>,
     ReadExpect<'a, Gamestate>,
     ReadStorage<'a, Dialogue>,
+    ReadExpect<'a, VecDeque<Dialogue_Single_item>>
 );
 
 pub fn update_canvas (
@@ -31,6 +32,24 @@ pub fn update_canvas (
     Ok(())
 }
 
+pub fn text_to_texture<'a>(texture_creator: &'a TextureCreator<WindowContext>, text: &str) -> Result<Texture<'a>, String> {
+
+    // Load a font
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+    let mut font = ttf_context.load_font("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 128)?;
+    
+    font.set_style(sdl2::ttf::FontStyle::BOLD);
+
+    // render a surface, and convert it to a texture bound to the canvas
+    let surface = font.render(text)
+        .blended(Color::RGBA(255, 0, 0, 255))
+        .map_err(|e| e.to_string())?;
+    let texture = texture_creator.create_texture_from_surface(&surface)
+        .map_err(|e| e.to_string())?;
+
+    Ok(texture)
+}
+
 pub fn render(
     canvas: &mut WindowCanvas,
     background: Color,
@@ -42,13 +61,12 @@ pub fn render(
         interaction,
         gamestate,
         dialogue,
+        dialogue_list,
     ): SystemData,
     draw_bounding_boxes: bool,
     draw_interaction_zone: bool,
     background_texture: &Texture,
 ) -> Result<(), String> {
-    println!("Renderer: GS = {:?}", *gamestate);
-
     canvas.set_draw_color(background);
     canvas.clear();
     canvas.copy(&background_texture, None, Some(Rect::new(0, 0, 800, 600)))?;
@@ -83,11 +101,17 @@ pub fn render(
             },
         }
     }
-
+    let dialogue_text: &str;
+    let texture_creator = canvas.texture_creator();
     if *gamestate == Gamestate::Dialogue {
-        for dial in (&dialogue).join() {
-            //update_canvas(pos.0, dial.spritesheet, Point::new(0, 0), canvas, textures)?;
+
+        if let Some(dialogue_item) = dialogue_list.front() {
+            println!("{}",dialogue_item.dialogue_text);
+            let txt_texture = text_to_texture(&texture_creator, &(dialogue_item.dialogue_text)).unwrap();
+            canvas.copy(&txt_texture, None, Some(Rect::new(0,600-200,800,200)))?;
+
         }
+        
     }
 
     // Debug function
@@ -102,21 +126,7 @@ pub fn render(
         }
     }
 
-    // Load a font
-    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-    let mut font = ttf_context.load_font("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 128)?;
-    
-    font.set_style(sdl2::ttf::FontStyle::BOLD);
-
-    // render a surface, and convert it to a texture bound to the canvas
-    let texture_creator = canvas.texture_creator();
-    let surface = font.render("Hello Rust!")
-        .blended(Color::RGBA(255, 0, 0, 255))
-        .map_err(|e| e.to_string())?;
-    let texture = texture_creator.create_texture_from_surface(&surface)
-        .map_err(|e| e.to_string())?;
-
-    canvas.copy(&texture, None, Some(Rect::new(0,0,200,200)))?;
+    //canvas.copy(&texture, None, Some(Rect::new(0,0,200,200)))?;
     canvas.present();
 
     Ok(())
