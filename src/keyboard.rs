@@ -131,10 +131,11 @@ impl<'a> System<'a> for Keyboard {
 
             },
             Gamestate::Dialogue => {
-                //println!("DIALOGUE DETECTED!! :D");
                 if let Some(PlayerCommands::Interact) = &*playercommands {
                     (*dialogue_list).pop_front();
-                    //println!("{:?}", (*dialogue_list).pop_front());
+                    if (*dialogue_list).is_empty() {
+                        *gamestate = Gamestate::Running;
+                    } 
                 }
             }
             _ => {println!("Not running, player commands disabled.");}

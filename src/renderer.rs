@@ -6,7 +6,7 @@ use sdl2::{video::WindowContext, rect::{Point, Rect}};
 use std::collections::{VecDeque};
 use shred::WriteExpect;
 
-const FONT_SIZE_DIALOGUE: u16 = 16;
+const FONT_SIZE_DIALOGUE: u16 = 24;
 
 pub type SystemData<'a> = (
     ReadStorage<'a, Position>,
@@ -119,14 +119,7 @@ pub fn render(
                 previous_dialogue.width = width;
                 previous_dialogue.height = height;
             }
-            
-            if previous_dialogue.text != String::from(" ") {
-                // Render the texture if it's not nothing. Come to think of it, maybe this check is unnecessary, since we always want some 
-                // some dialogue to appear if we're in GS::Dialogue.
-                canvas.copy(&txt_texture, None, Some(Rect::new(0,600-200, previous_dialogue.width, previous_dialogue.height)))?;
-            }
-            
-            
+            canvas.copy(&txt_texture, None, Some(Rect::new(0,600-200, previous_dialogue.width, previous_dialogue.height)))?;
         }
         
     }
