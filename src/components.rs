@@ -258,3 +258,10 @@ pub enum Gamestate {
     Menu,
     Dialogue,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Dialogue_Helper {
+    pub text: String,
+    pub width: u32,
+    pub height: u32,
+}

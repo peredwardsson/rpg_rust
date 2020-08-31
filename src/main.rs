@@ -34,11 +34,6 @@ use specs::prelude::*;
 
 extern crate sdl2;
 
-use std::env;
-use std::path::Path;
-
-use sdl2::render::TextureQuery;
-
 const SPRITE_WIDTH_PLAYER: i32 = 26;
 const SPRITE_HEIGHT_PLAYER: i32 = 36;
 
@@ -311,6 +306,7 @@ pub fn spawn_chest(world: &mut World, x: i32, y: i32) -> Result<(), String> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn load_dialogue(world: &mut World) -> Result<(), String> {
     let spritesheet = vec![4, 5, 6];
     let small_dialogue_sprite = Sprite {
@@ -368,12 +364,14 @@ pub fn main() -> Result<(), String> {
     let mut draw_interaction_zone = true;
     let mut thegame = Gamestate::Running;
     let mut dialogue_list: VecDeque<Dialogue_Single_item> = VecDeque::new();
+    let mut previous_dialogue_text = Dialogue_Helper{text: String::from(" "), width: 0, height: 0};
 
     world.insert(movement_command);
     world.insert(world_clock);
     world.insert(player_command);
     world.insert(thegame);
     world.insert(dialogue_list);
+    world.insert(previous_dialogue_text);
     world.register::<EntityAnimation>();
 
 
@@ -404,7 +402,6 @@ pub fn main() -> Result<(), String> {
     world_clock = Some(Instant::now());
 
     // Gradient test
-    let p = Perlin::new();
     let mut background_texture = texture_creator.
     create_texture_streaming(PixelFormatEnum::RGB24, 256, 256)
         .map_err(|e| e.to_string())?;

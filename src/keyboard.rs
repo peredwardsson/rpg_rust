@@ -112,21 +112,6 @@ impl<'a> System<'a> for Keyboard {
                                                         dialogue_text: (&cap[3]).into(),
                                                     });
                                                 }
-
-                                                // TODO: All below
-                                                // If the gamestate is Running, set it to Dialogue
-                                                // - Load the first dialogue piece 
-                                                // Else, if gamestate is Dialogue, we have pressed the interact button with a dialogue. 
-                                                // - If there's more dialogue, Advance dialogue (1)
-                                                // - Else, set gamestate to Running.
-                                                // Q: Tricky - How to store the dialogue? Perhaps an iterator? Reduces (1) to some kind of .next() call.
-                                                // A: Iterator's can not be a field on a component because they are not multi-thread safe. Or more precisely because
-                                                //    the std::iter::Iterator doesn't implement the std::marker::Sync trait. Bummer. Load conversation on compile? 
-                                                //    Rather not atm, not for iterating the game...
-                                                // However, we could do loading text here in this scope...
-                                                
-                                                
-                                                //(*object).talk(d).unwrap()
                                             };
                                         },
                                         _ => (*object).interact()

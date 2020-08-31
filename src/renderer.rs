@@ -1,9 +1,12 @@
 use specs::{ReadStorage, join::Join, ReadExpect};
 use crate::components::*;
-use sdl2::render::{WindowCanvas, Texture, TextureCreator};
+use sdl2::render::{WindowCanvas, Texture, TextureCreator, TextureQuery};
 use sdl2::pixels::Color;
 use sdl2::{video::WindowContext, rect::{Point, Rect}};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{VecDeque};
+use shred::WriteExpect;
+
+const FONT_SIZE_DIALOGUE: u16 = 16;
 
 pub type SystemData<'a> = (
     ReadStorage<'a, Position>,
@@ -11,8 +14,8 @@ pub type SystemData<'a> = (
     ReadStorage<'a, CollisionBox>,
     ReadStorage<'a, InteractionZone>,
     ReadExpect<'a, Gamestate>,
-    ReadStorage<'a, Dialogue>,
-    ReadExpect<'a, VecDeque<Dialogue_Single_item>>
+    ReadExpect<'a, VecDeque<Dialogue_Single_item>>,
+    WriteExpect<'a, Dialogue_Helper>,
 );
 
 pub fn update_canvas (
@@ -36,17 +39,17 @@ pub fn text_to_texture<'a>(texture_creator: &'a TextureCreator<WindowContext>, t
 
     // Load a font
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-    let mut font = ttf_context.load_font("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 128)?;
+    let mut font = ttf_context.load_font("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", FONT_SIZE_DIALOGUE)?;
     
     font.set_style(sdl2::ttf::FontStyle::BOLD);
 
     // render a surface, and convert it to a texture bound to the canvas
+    //println!("{}", text);
     let surface = font.render(text)
         .blended(Color::RGBA(255, 0, 0, 255))
         .map_err(|e| e.to_string())?;
     let texture = texture_creator.create_texture_from_surface(&surface)
         .map_err(|e| e.to_string())?;
-
     Ok(texture)
 }
 
@@ -60,8 +63,8 @@ pub fn render(
         collision,
         interaction,
         gamestate,
-        dialogue,
         dialogue_list,
+        mut previous_dialogue,
     ): SystemData,
     draw_bounding_boxes: bool,
     draw_interaction_zone: bool,
@@ -101,15 +104,29 @@ pub fn render(
             },
         }
     }
-    let dialogue_text: &str;
+    
     let texture_creator = canvas.texture_creator();
+    let mut txt_texture = text_to_texture(&texture_creator, &previous_dialogue.text).unwrap(); 
+
     if *gamestate == Gamestate::Dialogue {
-
         if let Some(dialogue_item) = dialogue_list.front() {
-            println!("{}",dialogue_item.dialogue_text);
-            let txt_texture = text_to_texture(&texture_creator, &(dialogue_item.dialogue_text)).unwrap();
-            canvas.copy(&txt_texture, None, Some(Rect::new(0,600-200,800,200)))?;
 
+            if dialogue_item.dialogue_text != previous_dialogue.text {
+                // Update the texture if there's new dialogue
+                txt_texture = text_to_texture(&texture_creator, &(dialogue_item.dialogue_text)).unwrap();
+                let TextureQuery { width, height, .. } = txt_texture.query();
+                previous_dialogue.text = dialogue_item.dialogue_text.clone();
+                previous_dialogue.width = width;
+                previous_dialogue.height = height;
+            }
+            
+            if previous_dialogue.text != String::from(" ") {
+                // Render the texture if it's not nothing. Come to think of it, maybe this check is unnecessary, since we always want some 
+                // some dialogue to appear if we're in GS::Dialogue.
+                canvas.copy(&txt_texture, None, Some(Rect::new(0,600-200, previous_dialogue.width, previous_dialogue.height)))?;
+            }
+            
+            
         }
         
     }
