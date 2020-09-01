@@ -364,7 +364,7 @@ pub fn main() -> Result<(), String> {
     let mut draw_interaction_zone = true;
     let mut thegame = Gamestate::Running;
     let mut dialogue_list: VecDeque<Dialogue_Single_item> = VecDeque::new();
-    let mut previous_dialogue_text = Dialogue_Helper{text: String::from(" "), width: 0, height: 0};
+    let mut previous_dialogue_text = Dialogue_Helper{text: String::from("."), width: 0, height: 0};
 
     world.insert(movement_command);
     world.insert(world_clock);

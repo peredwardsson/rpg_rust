@@ -6,7 +6,8 @@ use sdl2::{video::WindowContext, rect::{Point, Rect}};
 use std::collections::{VecDeque};
 use shred::WriteExpect;
 
-const FONT_SIZE_DIALOGUE: u16 = 24;
+const FONT_SIZE_DIALOGUE: u16 = 20;
+const STD_FONT_COLOR: Color = Color::RGBA(90, 170, 230, 230);
 
 pub type SystemData<'a> = (
     ReadStorage<'a, Position>,
@@ -39,14 +40,14 @@ pub fn text_to_texture<'a>(texture_creator: &'a TextureCreator<WindowContext>, t
 
     // Load a font
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-    let mut font = ttf_context.load_font("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", FONT_SIZE_DIALOGUE)?;
+    let mut font = ttf_context.load_font("/usr/share/fonts/opentype/LandasansUltraLight.otf", FONT_SIZE_DIALOGUE)?;
     
     font.set_style(sdl2::ttf::FontStyle::BOLD);
 
     // render a surface, and convert it to a texture bound to the canvas
     //println!("{}", text);
-    let surface = font.render(text)
-        .blended(Color::RGBA(255, 0, 0, 255))
+    let surface = font.render(text.trim())
+        .blended(STD_FONT_COLOR)
         .map_err(|e| e.to_string())?;
     let texture = texture_creator.create_texture_from_surface(&surface)
         .map_err(|e| e.to_string())?;
