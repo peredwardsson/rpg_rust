@@ -7,8 +7,6 @@ use specs::prelude::*;
 use sdl2::rect::{Rect, Point};
 use rand::distributions::{Standard, Distribution};
 use rand::Rng;
-use io::{Lines, BufRead, BufReader};
-use regex::Regex;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Size3 {
@@ -264,4 +262,11 @@ pub struct Dialogue_Helper {
     pub text: String,
     pub width: u32,
     pub height: u32,
+}
+
+pub struct Ability {
+    pub name: String,
+    pub range: i32, // Err... maybe? In pixels rn?
+    pub animation: EntityAnimation,
+    pub effects: i32 // Probably 
 }

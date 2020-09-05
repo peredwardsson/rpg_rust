@@ -73,7 +73,7 @@ pub fn render(
 ) -> Result<(), String> {
     canvas.set_draw_color(background);
     canvas.clear();
-    canvas.copy(&background_texture, None, Some(Rect::new(0, 0, 800, 600)))?;
+    //canvas.copy(&background_texture, None, Some(Rect::new(0, 0, 800, 600)))?;
 
     let (width, height) = canvas.output_size()?;
     let origin = Point::new(width as i32 / 2, height as i32 /2);

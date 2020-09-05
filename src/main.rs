@@ -30,8 +30,6 @@ use noise::{Perlin, NoiseFn};
 use crate::components::*;
 use specs::prelude::*;
 
-
-
 extern crate sdl2;
 
 const SPRITE_WIDTH_PLAYER: i32 = 26;
@@ -171,6 +169,7 @@ pub fn add_player(world: &mut World) -> Result<(), String> {
         .with(Facing::default())
         .with(InteractionZone::default())
         .build();
+        // with.(ability{name, range, animation, effects?})
 
     Ok(())
 }
@@ -363,6 +362,8 @@ pub fn main() -> Result<(), String> {
     let mut draw_bounding_box = true;
     let mut draw_interaction_zone = true;
     let mut thegame = Gamestate::Running;
+
+    // This lint is incorrect. I think.
     let mut dialogue_list: VecDeque<Dialogue_Single_item> = VecDeque::new();
     let mut previous_dialogue_text = Dialogue_Helper{text: String::from("."), width: 0, height: 0};
 
